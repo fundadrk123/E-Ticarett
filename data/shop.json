@@ -1,0 +1,462 @@
+{
+  "categories": [
+    {
+      "id": "1",
+      "name": "El Aletleri",
+      "slug": "el-aletleri",
+      "icon": "🔧",
+      "productCount": 124,
+      "image": "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=900&h=700&fit=crop",
+      "description": "Delme, kesme ve montaj işlerinde güçlü çözüm"
+    },
+    {
+      "id": "2",
+      "name": "Hırdavat & Nalburiye",
+      "slug": "hirdavat-nalburiye",
+      "icon": "🔩",
+      "productCount": 256,
+      "image": "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900&h=700&fit=crop",
+      "description": "Her türlü montaj ve bakım ihtiyacınız için geniş ürün yelpazesi"
+    },
+    {
+      "id": "3",
+      "name": "Elektrikli Makinalar",
+      "slug": "elektrikli-makinalar",
+      "icon": "⚡",
+      "productCount": 89,
+      "image": "https://images.unsplash.com/photo-1581092160562-40aa08e787d9?w=900&h=700&fit=crop",
+      "description": "Profesyonel kullanım için güçlü ve verimli elektrikli ekipmanlar"
+    },
+    {
+      "id": "4",
+      "name": "Vida & Dübel",
+      "slug": "vida-dubel",
+      "icon": "📌",
+      "productCount": 178,
+      "image": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=900&h=700&fit=crop",
+      "description": "Dayanıklı montaj çözümleri ve güvenli bağlantılar"
+    },
+    {
+      "id": "5",
+      "name": "Hortum & Bağlantı",
+      "slug": "hortum-baglanti",
+      "icon": "🔗",
+      "productCount": 67,
+      "image": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=900&h=700&fit=crop",
+      "description": "Sıvı ve hava transferi için pratik bağlantı sistemleri"
+    },
+    {
+      "id": "6",
+      "name": "Kimyasal Grubu",
+      "slug": "kimyasal-grubu",
+      "icon": "🧪",
+      "productCount": 94,
+      "image": "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=900&h=700&fit=crop",
+      "description": "Yapı ve bakım uygulamalarında güvenli kimyasal çözümler"
+    },
+    {
+      "id": "7",
+      "name": "İş Güvenliği",
+      "slug": "is-guvenligi",
+      "icon": "🦺",
+      "productCount": 45,
+      "image": "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=900&h=700&fit=crop",
+      "description": "İş yerinde güvenliği artıran koruyucu ekipmanlar"
+    },
+    {
+      "id": "8",
+      "name": "Bahçe Aletleri",
+      "slug": "bahce-aletleri",
+      "icon": "🌿",
+      "productCount": 72,
+      "image": "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=900&h=700&fit=crop",
+      "description": "Bahçe bakımında pratik ve güçlü ürünler"
+    },
+    {
+      "id": "9",
+      "name": "Merdivenler",
+      "slug": "merdivenler",
+      "icon": "🪜",
+      "productCount": 28,
+      "image": "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=900&h=700&fit=crop",
+      "description": "Güvenli erişim için sağlam ve hafif merdivenler"
+    },
+    {
+      "id": "10",
+      "name": "Profil & Köşebent",
+      "slug": "profil-kosebent",
+      "icon": "📐",
+      "productCount": 56,
+      "image": "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=900&h=700&fit=crop",
+      "description": "İnşaat projeleri için esnek yapı malzemeleri"
+    },
+    {
+      "id": "11",
+      "name": "Teller & Zincir",
+      "slug": "teller-zincir",
+      "icon": "⛓️",
+      "productCount": 41,
+      "image": "https://images.unsplash.com/photo-1536924940846-227afb31e2a5?w=900&h=700&fit=crop",
+      "description": "Güçlü ve dayanıklı sabitleme çözümleri"
+    },
+    {
+      "id": "12",
+      "name": "Yapıştırıcı & Silikon",
+      "slug": "yapistirici-silikon",
+      "icon": "🧴",
+      "productCount": 63,
+      "image": "https://images.unsplash.com/photo-1600793433301-f2ff1a725684?w=900&h=700&fit=crop",
+      "description": "Hızlı ve sağlam yapıştırma çözümleri"
+    }
+  ],
+  "brands": [
+    {
+      "id": "1",
+      "name": "Mertem Pro",
+      "slug": "mertem-pro"
+    },
+    {
+      "id": "2",
+      "name": "PowerMax",
+      "slug": "powermax"
+    },
+    {
+      "id": "3",
+      "name": "SteelLine",
+      "slug": "steel-line"
+    },
+    {
+      "id": "4",
+      "name": "BuildFix",
+      "slug": "buildfix"
+    },
+    {
+      "id": "5",
+      "name": "SafeGuard",
+      "slug": "safeguard"
+    },
+    {
+      "id": "6",
+      "name": "AquaFlow",
+      "slug": "aquaflow"
+    }
+  ],
+  "products": [
+    {
+      "id": "1",
+      "sku": "MP-135",
+      "name": "Dalgıç Pompası Kirli Su (900 W)",
+      "slug": "dalgic-pompasi-kirli-su-900w",
+      "brand": "PowerMax",
+      "categoryId": "3",
+      "priceExVat": 4730,
+      "priceIncVat": 5676,
+      "unit": "ADET",
+      "inStock": true,
+      "isNew": true,
+      "image": "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=600&h=600&fit=crop",
+      "description": "Yüksek performanslı kirli su dalgıç pompası. İnşaat sahaları ve drenaj uygulamaları için ideal.",
+      "features": [
+        "900 W motor gücü",
+        "Paslanmaz çelik gövde",
+        "Otomatik yüzen anahtar",
+        "2 yıl garanti"
+      ]
+    },
+    {
+      "id": "2",
+      "sku": "MP-1914",
+      "name": "Motorlu Ağaç Kesme Zinciri (325x0.50-34 Diş)",
+      "slug": "motorlu-agac-kesme-zinciri",
+      "brand": "SteelLine",
+      "categoryId": "3",
+      "priceExVat": 590,
+      "priceIncVat": 708,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=600&fit=crop",
+      "description": "Profesyonel motorlu testere zinciri. Dayanıklı çelik yapı ile uzun ömürlü kullanım.",
+      "features": [
+        "34 diş",
+        "1.3mm kalınlık",
+        "Hızlı kesim performansı"
+      ]
+    },
+    {
+      "id": "3",
+      "sku": "MP-238",
+      "name": "Derin Kuyu Dalgıç Pompası (1 HP 71 MT.)",
+      "slug": "derin-kuyu-dalgic-pompasi",
+      "brand": "AquaFlow",
+      "categoryId": "3",
+      "priceExVat": 10800,
+      "priceIncVat": 12960,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=600&h=600&fit=crop",
+      "description": "71 metre derinliğe kadar su çekme kapasiteli derin kuyu pompası.",
+      "features": [
+        "1 HP güç",
+        "71 mt. derinlik",
+        "220V çalışma voltajı"
+      ]
+    },
+    {
+      "id": "4",
+      "sku": "MP-7000",
+      "name": "Araç Yıkama Makinası (150 BAR)",
+      "slug": "arac-yikama-makinasi-150-bar",
+      "brand": "PowerMax",
+      "categoryId": "3",
+      "priceExVat": 10500,
+      "priceIncVat": 12600,
+      "unit": "ADET",
+      "inStock": true,
+      "isNew": true,
+      "image": "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=600&h=600&fit=crop",
+      "description": "150 bar basınçlı profesyonel araç yıkama makinesi.",
+      "features": [
+        "150 BAR basınç",
+        "Profesyonel tabanca",
+        "Uzun hortum dahil"
+      ]
+    },
+    {
+      "id": "5",
+      "sku": "MP-7300",
+      "name": "Akülü Hilti 40J",
+      "slug": "akulu-hilti-40j",
+      "brand": "Mertem Pro",
+      "categoryId": "3",
+      "priceExVat": 12500,
+      "priceIncVat": 15000,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600&h=600&fit=crop",
+      "description": "40J darbe enerjili akülü kırıcı-delici. Beton ve tuğla delme işleri için.",
+      "features": [
+        "40J darbe enerjisi",
+        "Fırçasız motor",
+        "2 adet akü dahil"
+      ]
+    },
+    {
+      "id": "6",
+      "sku": "MP-7520",
+      "name": "Benzinli Ağaç Kesme Motoru (60 CC)",
+      "slug": "benzinli-agac-kesme-motoru-60cc",
+      "brand": "PowerMax",
+      "categoryId": "3",
+      "priceExVat": 17400,
+      "priceIncVat": 20880,
+      "unit": "ADET",
+      "packSize": 2,
+      "packUnit": "KOLİ",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=600&h=600&fit=crop",
+      "description": "60cc motor hacimli güçlü benzinli ağaç kesme motoru.",
+      "features": [
+        "60 CC motor",
+        "Anti-vibrasyon sistemi",
+        "Kolay başlatma"
+      ]
+    },
+    {
+      "id": "7",
+      "sku": "MP-7170",
+      "name": "Benzinli Çim Biçme Motoru (46 CM)",
+      "slug": "benzinli-cim-bicme-motoru",
+      "brand": "PowerMax",
+      "categoryId": "8",
+      "priceExVat": 8900,
+      "priceIncVat": 10680,
+      "unit": "ADET",
+      "inStock": false,
+      "image": "https://images.unsplash.com/photo-1558904541-efa843a96f01?w=600&h=600&fit=crop",
+      "description": "46 cm kesim genişliğine sahip benzinli çim biçme makinesi.",
+      "features": [
+        "46 cm kesim genişliği",
+        "Yüksek torklu motor",
+        "Ayarlanabilir yükseklik"
+      ]
+    },
+    {
+      "id": "8",
+      "sku": "BF-360",
+      "name": "Kimyasal Dübel 360 ML (1/12)",
+      "slug": "kimyasal-dubel-360ml",
+      "brand": "BuildFix",
+      "categoryId": "4",
+      "priceExVat": 3000,
+      "priceIncVat": 3600,
+      "unit": "ADET",
+      "packSize": 12,
+      "packUnit": "PAKET",
+      "inStock": true,
+      "isRestocked": true,
+      "image": "https://images.unsplash.com/photo-1581094794329-cd2a7a8e1a0e?w=600&h=600&fit=crop",
+      "description": "Yüksek mukavemetli kimyasal dübel. Beton ve tuğla montajları için.",
+      "features": [
+        "360 ML hacim",
+        "Hızlı kuruma",
+        "12'li paket seçeneği"
+      ]
+    },
+    {
+      "id": "9",
+      "sku": "BF-MIX1600",
+      "name": "Karıştırıcı Mixer 1600 W",
+      "slug": "karistirici-mixer-1600w",
+      "brand": "BuildFix",
+      "categoryId": "3",
+      "priceExVat": 7500,
+      "priceIncVat": 9000,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=600&h=600&fit=crop",
+      "description": "1600W güçlü profesyonel karıştırıcı. Alçı, boya ve harç karışımları için.",
+      "features": [
+        "1600 W motor",
+        "Değişken hız kontrolü",
+        "Ergonomik tutamak"
+      ]
+    },
+    {
+      "id": "10",
+      "sku": "MD-KABLO20",
+      "name": "Kablolu Makara 3*2,5 x 20MT",
+      "slug": "kablolu-makara-3x2-5-20mt",
+      "brand": "Mertem Pro",
+      "categoryId": "2",
+      "priceExVat": 1390,
+      "priceIncVat": 1668,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=600&h=600&fit=crop",
+      "description": "20 metre kablolu elektrik makarası. Şantiye ve atölye kullanımı için.",
+      "features": [
+        "3x2,5 mm kablo",
+        "20 mt uzunluk",
+        "Termal koruma"
+      ]
+    },
+    {
+      "id": "11",
+      "sku": "SG-ELD",
+      "name": "İş Eldiveni Nitril Kaplı (10 Çift)",
+      "slug": "is-eldiveni-nitril-kapli",
+      "brand": "SafeGuard",
+      "categoryId": "7",
+      "priceExVat": 450,
+      "priceIncVat": 540,
+      "unit": "PAKET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=600&fit=crop",
+      "description": "Nitril kaplı dayanıklı iş eldiveni. Kaymaz yüzey.",
+      "features": [
+        "Nitril kaplama",
+        "10 çift/paket",
+        "CE sertifikalı"
+      ]
+    },
+    {
+      "id": "12",
+      "sku": "EB-MER26",
+      "name": "Teleskopik Merdiven 2,6 MT (9 Basamaklı)",
+      "slug": "teleskopik-merdiven-2-6mt",
+      "brand": "Mertem Pro",
+      "categoryId": "9",
+      "priceExVat": 6900,
+      "priceIncVat": 8280,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1581579186980-241e3cf27b1e?w=600&h=600&fit=crop",
+      "description": "2,6 metre yüksekliğe ulaşan teleskopik alüminyum merdiven.",
+      "features": [
+        "9 basamak",
+        "Alüminyum gövde",
+        "Kompakt katlanabilir tasarım"
+      ]
+    },
+    {
+      "id": "13",
+      "sku": "BF-FIX280",
+      "name": "Güçlü Montaj Yapıştırıcı Universal Fix 280 ML",
+      "slug": "montaj-yapistirici-universal-fix",
+      "brand": "BuildFix",
+      "categoryId": "12",
+      "priceExVat": 6240,
+      "priceIncVat": 7488,
+      "unit": "ADET",
+      "packSize": 24,
+      "packUnit": "PAKET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1565182999561-27bda9f4c3c0?w=600&h=600&fit=crop",
+      "description": "Evrensel montaj yapıştırıcısı. Seramik, alçıpan ve metal yüzeylerde kullanılır.",
+      "features": [
+        "280 ML",
+        "Beyaz renk",
+        "24'lü paket seçeneği"
+      ]
+    },
+    {
+      "id": "14",
+      "sku": "SL-HIDRO05",
+      "name": "Otomatik Hidrofor (0.5 HP 370 W)",
+      "slug": "otomatik-hidrofor-0-5hp",
+      "brand": "AquaFlow",
+      "categoryId": "3",
+      "priceExVat": 5900,
+      "priceIncVat": 7080,
+      "unit": "ADET",
+      "inStock": true,
+      "isRestocked": true,
+      "image": "https://images.unsplash.com/photo-1585779034823-7e9ac8faec70?w=600&h=600&fit=crop",
+      "description": "0.5 HP otomatik hidrofor sistemi. Ev ve işyeri su basıncı için.",
+      "features": [
+        "0.5 HP",
+        "370 W",
+        "Otomatik basınç kontrolü"
+      ]
+    },
+    {
+      "id": "15",
+      "sku": "MP-1933",
+      "name": "Akülü Darbeli Matkap 13 MM (21V/65N)",
+      "slug": "akulu-darbeli-matkap-13mm",
+      "brand": "Mertem Pro",
+      "categoryId": "1",
+      "priceExVat": 7000,
+      "priceIncVat": 8400,
+      "unit": "ADET",
+      "inStock": true,
+      "isNew": true,
+      "image": "https://images.unsplash.com/photo-1572981779307-38befb787c86?w=600&h=600&fit=crop",
+      "description": "21V akülü darbeli matkap. 65Nm tork ile zorlu delme işleri.",
+      "features": [
+        "21V",
+        "65 Nm tork",
+        "13 mm mandren"
+      ]
+    },
+    {
+      "id": "16",
+      "sku": "MP-9800",
+      "name": "Jet Hidrofor (1,6 HP) 1 İnç",
+      "slug": "jet-hidrofor-1-6hp",
+      "brand": "AquaFlow",
+      "categoryId": "3",
+      "priceExVat": 17000,
+      "priceIncVat": 20400,
+      "unit": "ADET",
+      "inStock": true,
+      "image": "https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=600&h=600&fit=crop",
+      "description": "1,6 HP jet hidrofor pompası. Yüksek debi su transferi.",
+      "features": [
+        "1,6 HP",
+        "1 inç bağlantı",
+        "Sessiz çalışma"
+      ]
+    }
+  ]
+}
