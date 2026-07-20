@@ -1,10 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { categories, products } from "@/lib/store";
 import { ArrowRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
+import { getServerCategories, getServerProducts } from "@/lib/server-data";
 
-export function CategoryGrid() {
+export async function CategoryGrid() {
+  const categories = await getServerCategories();
+  const products = await getServerProducts();
+
   const categoryCards = categories.map((cat) => {
     const categoryProducts = products.filter((product) => product.categoryId === cat.id);
     const cheapestProduct = [...categoryProducts].sort(
@@ -46,7 +49,10 @@ export function CategoryGrid() {
             >
               <div className="relative aspect-[4/3] overflow-hidden">
                 <Image
-                  src={cat.image || "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900&h=700&fit=crop"}
+                  src={
+                    cat.image ||
+                    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900&h=700&fit=crop"
+                  }
                   alt={cat.name}
                   fill
                   className="object-cover transition duration-300 group-hover:scale-105"
@@ -64,9 +70,7 @@ export function CategoryGrid() {
                     <h3 className="text-base font-semibold text-slate-800 group-hover:text-primary-600">
                       {cat.name}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {cat.description}
-                    </p>
+                    <p className="mt-1 text-sm text-slate-500">{cat.description}</p>
                   </div>
                   <span className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-700">
                     {cat.productCount} ürün

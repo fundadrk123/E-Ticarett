@@ -1,6 +1,9 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { getServerCategoryBySlug, getServerProductsByCategory } from "@/lib/server-data";
+import {
+  getServerCategoryBySlug,
+  getServerProductsByCategory,
+} from "@/lib/server-data";
 import { ProductCard } from "@/components/products/ProductCard";
 
 interface Props {
@@ -9,7 +12,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const category = getServerCategoryBySlug(slug);
+  const category = await getServerCategoryBySlug(slug);
   return {
     title: category?.name || "Kategori",
   };
@@ -17,11 +20,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const category = getServerCategoryBySlug(slug);
+  const category = await getServerCategoryBySlug(slug);
 
   if (!category) notFound();
 
-  const categoryProducts = getServerProductsByCategory(category.id);
+  const categoryProducts = await getServerProductsByCategory(category.id);
 
   return (
     <div className="container-site py-8 lg:py-12">

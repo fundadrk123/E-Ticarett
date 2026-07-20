@@ -2,12 +2,16 @@ import { Hero } from "@/components/home/Hero";
 import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductSection } from "@/components/home/ProductSection";
 import { BrandSection } from "@/components/home/BrandSection";
-import { getServerProducts, getServerNewProducts, getServerRestockedProducts } from "@/lib/server-data";
+import {
+  getServerProducts,
+  getServerNewProducts,
+  getServerRestockedProducts,
+} from "@/lib/server-data";
 
-export default function HomePage() {
-  const products = getServerProducts();
-  const newProducts = getServerNewProducts();
-  const restockedProducts = getServerRestockedProducts();
+export default async function HomePage() {
+  const products = await getServerProducts();
+  const newProducts = await getServerNewProducts();
+  const restockedProducts = await getServerRestockedProducts();
 
   return (
     <>

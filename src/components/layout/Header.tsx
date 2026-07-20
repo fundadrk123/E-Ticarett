@@ -14,6 +14,7 @@ import {
 import { siteConfig } from "@/data/site";
 import { categories as categoryData } from "@/data/categories";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -21,6 +22,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const categories = categoryData;
   const { itemCount } = useCart();
+  const { user, logout, loading } = useAuth();
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -61,13 +63,38 @@ export function Header() {
         </form>
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
-          <Link
-            href="/giris"
-            className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:flex"
-          >
-            <User className="h-5 w-5" />
-            <span className="hidden lg:inline">Giriş Yap</span>
-          </Link>
+          {!loading && user ? (
+            <div className="hidden items-center gap-2 sm:flex">
+              <Link
+                href="/hesabim"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                {user.name.split(" ")[0]}
+              </Link>
+              {user.role === "admin" && (
+                <Link
+                  href="/admin"
+                  className="rounded-lg bg-accent-500 px-3 py-2 text-sm font-medium text-white hover:bg-accent-600"
+                >
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={() => logout()}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100"
+              >
+                Çıkış
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/giris"
+              className="hidden items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:flex"
+            >
+              <User className="h-5 w-5" />
+              <span className="hidden lg:inline">Giriş Yap</span>
+            </Link>
+          )}
 
           <Link
             href="/sepet"

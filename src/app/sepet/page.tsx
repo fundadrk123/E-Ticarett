@@ -135,7 +135,7 @@ export default function CartPage() {
               {formatPrice(totalIncVat)}
             </span>
           </div>
-          <Link href="/giris" className="btn-accent mt-6 w-full">
+          <Link href="/odeme" className="btn-accent mt-6 w-full">
             Siparişi Tamamla
           </Link>
           <Link

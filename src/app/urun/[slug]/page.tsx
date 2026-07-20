@@ -12,11 +12,11 @@ interface Props {
 
 export default async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
-  const product = getServerProductBySlug(slug);
+  const product = await getServerProductBySlug(slug);
 
   if (!product) notFound();
 
-  const category = getServerCategoryById(product.categoryId);
+  const category = await getServerCategoryById(product.categoryId);
 
   return (
     <div className="container-site py-8 lg:py-12">

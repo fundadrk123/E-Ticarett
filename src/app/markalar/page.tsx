@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   title: "Markalar",
 };
 
-export default function BrandsPage() {
-  const brands = getServerBrands();
-  const products = getServerProducts();
+export default async function BrandsPage() {
+  const brands = await getServerBrands();
+  const products = await getServerProducts();
 
   return (
     <div className="container-site py-8 lg:py-12">

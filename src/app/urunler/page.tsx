@@ -7,25 +7,26 @@ import {
   getServerBrands,
 } from "@/lib/server-data";
 
-function ProductsContent({
-  query,
-  filter,
-  brandSlug,
+export default async function ProductsPage({
+  searchParams,
 }: {
-  query: string;
-  filter: string;
-  brandSlug: string;
+  searchParams?: Promise<{ q?: string; filtre?: string; marka?: string }>;
 }) {
-  const products = getServerProducts();
-  const brands = getServerBrands();
+  const params = (await searchParams) ?? {};
+  const query = params.q || "";
+  const filter = params.filtre || "";
+  const brandSlug = params.marka || "";
+
+  const products = await getServerProducts();
+  const brands = await getServerBrands();
   let filteredProducts = products;
 
   if (query) {
-    filteredProducts = getServerSearchProducts(query);
+    filteredProducts = await getServerSearchProducts(query);
   } else if (filter === "yeni") {
-    filteredProducts = getServerNewProducts();
+    filteredProducts = await getServerNewProducts();
   } else if (filter === "stok") {
-    filteredProducts = getServerRestockedProducts();
+    filteredProducts = await getServerRestockedProducts();
   }
 
   if (brandSlug) {
@@ -70,23 +71,6 @@ function ProductsContent({
           </p>
         </div>
       )}
-    </div>
-  );
-}
-
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams?: Promise<{ q?: string; filtre?: string; marka?: string }>;
-}) {
-  const params = (await searchParams) ?? {};
-  const query = params.q || "";
-  const filter = params.filtre || "";
-  const brandSlug = params.marka || "";
-
-  return (
-    <div className="container-site py-8 lg:py-12">
-      <ProductsContent query={query} filter={filter} brandSlug={brandSlug} />
     </div>
   );
 }

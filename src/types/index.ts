@@ -49,3 +49,83 @@ export interface SiteConfig {
   whatsapp: string;
   workingHours: string;
 }
+
+export type UserRole = "user" | "admin";
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export type OrderStatus =
+  | "pending"
+  | "confirmed"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
+
+export type PaymentMethod = "credit_card" | "bank_transfer" | "cash_on_delivery";
+
+export interface ShippingAddress {
+  fullName: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  district: string;
+  postalCode?: string;
+}
+
+export interface OrderItem {
+  id: string;
+  orderId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  unitPriceExVat: number;
+  unitPriceIncVat: number;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  userId?: string;
+  email: string;
+  customerName: string;
+  phone?: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  paymentMethod: PaymentMethod;
+  totalExVat: number;
+  totalIncVat: number;
+  shippingAddress: ShippingAddress;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: OrderItem[];
+}
+
+export interface AdminStats {
+  totalProducts: number;
+  totalOrders: number;
+  pendingOrders: number;
+  totalUsers: number;
+  totalRevenue: number;
+}
+
+export interface CreateOrderPayload {
+  items: { productId: string; quantity: number }[];
+  customerName: string;
+  email: string;
+  phone: string;
+  shippingAddress: ShippingAddress;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+}

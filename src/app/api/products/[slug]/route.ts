@@ -1,22 +1,26 @@
 import { NextResponse } from "next/server";
-import { getProductBySlug } from "@/lib/store";
+import { getProductBySlugPg } from "@/lib/db/postgresDataService";
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ slug: string }> }
-) {
-  const { slug } = await params;
-  const product = getProductBySlug(slug);
+interface Props {
+  params: Promise<{ slug: string }>;
+}
 
-  if (!product) {
+export async function GET(_request: Request, { params }: Props) {
+  try {
+    const { slug } = await params;
+    const product = await getProductBySlugPg(slug);
+    if (!product) {
+      return NextResponse.json(
+        { success: false, message: "Ürün bulunamadı." },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({ success: true, data: product });
+  } catch (error) {
+    console.error("Product API error:", error);
     return NextResponse.json(
-      { success: false, error: "Ürün bulunamadı" },
-      { status: 404 }
+      { success: false, message: "Ürün alınamadı." },
+      { status: 500 }
     );
   }
-
-  return NextResponse.json({
-    success: true,
-    data: product,
-  });
 }
