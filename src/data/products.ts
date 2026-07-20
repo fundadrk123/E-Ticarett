@@ -233,7 +233,7 @@ export const products: Product[] = [
     unit: "ADET",
     inStock: true,
     isNew: true,
-    image: "https://images.unsplash.com/photo-1572981779307-38befb787c86?w=600&h=600&fit=crop",
+    image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=600&h=600&fit=crop",
     description: "21V akülü darbeli matkap. 65Nm tork ile zorlu delme işleri.",
     features: ["21V", "65 Nm tork", "13 mm mandren"],
   },

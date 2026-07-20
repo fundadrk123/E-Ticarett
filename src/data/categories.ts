@@ -25,7 +25,7 @@ export const categories: Category[] = [
     slug: "elektrikli-makinalar",
     icon: "⚡",
     productCount: 89,
-    image: "https://images.unsplash.com/photo-1581092160562-40aa08e787d9?w=900&h=700&fit=crop",
+    image: "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?w=900&h=700&fit=crop",
     description: "Profesyonel kullanım için güçlü ve verimli elektrikli ekipmanlar",
   },
   {
@@ -106,7 +106,7 @@ export const categories: Category[] = [
     slug: "yapistirici-silikon",
     icon: "🧴",
     productCount: 63,
-    image: "https://images.unsplash.com/photo-1600793433301-f2ff1a725684?w=900&h=700&fit=crop",
+    image: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=900&h=700&fit=crop",
     description: "Hızlı ve sağlam yapıştırma çözümleri",
   },
 ];
