@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:up": "docker compose up -d",
-    "db:down": "docker compose down",
-    "db:setup": "node scripts/setup-db.mjs"
+    "db:setup": "node scripts/setup-postgres-native.mjs",
+    "db:setup:docker": "docker compose up -d && node scripts/setup-db.mjs",
+    "db:docker:up": "docker compose up -d",
+    "db:docker:down": "docker compose down"
   },
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
