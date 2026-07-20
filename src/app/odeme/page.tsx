@@ -7,6 +7,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
 import type { PaymentMethod } from "@/types";
+import { AddressLocationFields } from "@/components/checkout/AddressLocationFields";
 
 export default function CheckoutPage() {
   const { items, totalIncVat, clearCart } = useCart();
@@ -158,28 +159,17 @@ export default function CheckoutPage() {
                 onChange={(e) => setForm({ ...form, addressLine: e.target.value })}
                 className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-primary-500"
               />
-              <div className="grid gap-4 sm:grid-cols-3">
-                <input
-                  required
-                  placeholder="İl"
-                  value={form.city}
-                  onChange={(e) => setForm({ ...form, city: e.target.value })}
-                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-primary-500"
-                />
-                <input
-                  required
-                  placeholder="İlçe"
-                  value={form.district}
-                  onChange={(e) => setForm({ ...form, district: e.target.value })}
-                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-primary-500"
-                />
-                <input
-                  placeholder="Posta Kodu"
-                  value={form.postalCode}
-                  onChange={(e) => setForm({ ...form, postalCode: e.target.value })}
-                  className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-primary-500"
-                />
-              </div>
+              <AddressLocationFields
+                city={form.city}
+                district={form.district}
+                postalCode={form.postalCode}
+                onCityChange={(cityName) =>
+                  setForm({ ...form, city: cityName, district: "", postalCode: "" })
+                }
+                onDistrictChange={(districtName, postalCode) =>
+                  setForm({ ...form, district: districtName, postalCode })
+                }
+              />
             </div>
           </div>
 
