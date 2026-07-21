@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:setup": "node scripts/setup-postgres-native.mjs",
+    "kupa:import": "node scripts/generate-kupa-data.mjs && node scripts/import-kupa-products.mjs",
     "db:locations": "node scripts/build-locations.mjs",
     "db:setup:docker": "docker compose up -d && node scripts/setup-db.mjs",
     "db:docker:up": "docker compose up -d",

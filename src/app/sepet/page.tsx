@@ -119,14 +119,8 @@ export default function CartPage() {
           <h2 className="text-lg font-bold text-slate-800">Sipariş Özeti</h2>
           <div className="mt-4 space-y-3 border-b border-slate-100 pb-4">
             <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Ara Toplam (+KDV)</span>
-              <span className="font-medium">{formatPrice(totalExVat)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">KDV</span>
-              <span className="font-medium">
-                {formatPrice(totalIncVat - totalExVat)}
-              </span>
+              <span className="text-slate-500">{items.length} ürün</span>
+              <span className="font-medium">{formatPrice(totalIncVat)}</span>
             </div>
           </div>
           <div className="mt-4 flex justify-between">

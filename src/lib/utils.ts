@@ -1,7 +1,7 @@
 export function formatPrice(amount: number): string {
-  return new Intl.NumberFormat("tr-TR", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "TRY",
+    currency: "USD",
     minimumFractionDigits: 2,
   }).format(amount);
 }

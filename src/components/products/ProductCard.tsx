@@ -75,8 +75,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <>
             <div className="mt-auto space-y-0.5">
               <p className="text-xs text-slate-500">
-                {formatPrice(product.priceExVat)}{" "}
-                <span className="font-medium">+KDV</span>
+                <span className="font-medium">Liste Fiyatı</span>
               </p>
               <p className="text-lg font-bold text-primary-600">
                 {formatPrice(product.priceIncVat)}
