@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -40,19 +39,19 @@ export async function CategoryGrid() {
               href={`/kategori/${cat.slug}`}
               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative aspect-[4/3] overflow-hidden">
-                <Image
+              <div className="relative aspect-[4/3] overflow-hidden bg-slate-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={
                     cat.image ||
-                    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=900&h=700&fit=crop"
+                    "https://images.unsplash.com/photo-1517048676732-d65bc937f952?w=600&h=450&fit=crop"
                   }
                   alt={cat.name}
-                  fill
                   loading="lazy"
-                  className="object-cover transition duration-300 group-hover:scale-105"
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  decoding="async"
+                  className="h-full w-full object-contain p-4 transition duration-200 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-900/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
                 <div className="absolute left-3 top-3 rounded-full bg-white/90 px-3 py-1 text-lg shadow-sm">
                   {cat.icon}
                 </div>

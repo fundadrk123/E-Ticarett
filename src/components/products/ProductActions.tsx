@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ShoppingCart, Minus, Plus, Check } from "lucide-react";
 import { Product } from "@/types";
 import { useCart } from "@/context/CartContext";
@@ -11,14 +11,22 @@ interface ProductActionsProps {
 
 export function ProductActions({ product }: ProductActionsProps) {
   const [quantity, setQuantity] = useState(1);
-  const [added, setAdded] = useState(false);
+  const qtyRef = useRef(1);
+  const [addedQty, setAddedQty] = useState<number | null>(null);
   const { addToCart } = useCart();
+
+  const setQty = (next: number) => {
+    const value = Math.max(1, Math.floor(Number(next) || 1));
+    qtyRef.current = value;
+    setQuantity(value);
+  };
 
   const handleAdd = () => {
     if (!product.inStock) return;
-    addToCart(product, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    const qty = Math.max(1, qtyRef.current);
+    addToCart(product, qty);
+    setAddedQty(qty);
+    window.setTimeout(() => setAddedQty(null), 2000);
   };
 
   if (!product.inStock) {
@@ -33,15 +41,19 @@ export function ProductActions({ product }: ProductActionsProps) {
     <div className="mt-8 flex flex-wrap items-center gap-4">
       <div className="flex items-center rounded-lg border border-slate-200 bg-white">
         <button
-          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+          type="button"
+          onClick={() => setQty(quantity - 1)}
           className="flex h-11 w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
           aria-label="Azalt"
         >
           <Minus className="h-4 w-4" />
         </button>
-        <span className="w-12 text-center text-lg font-semibold">{quantity}</span>
+        <span className="min-w-14 border-x border-slate-200 px-3 py-2 text-center text-lg font-bold tabular-nums">
+          {quantity}
+        </span>
         <button
-          onClick={() => setQuantity(quantity + 1)}
+          type="button"
+          onClick={() => setQty(quantity + 1)}
           className="flex h-11 w-11 items-center justify-center text-slate-500 hover:bg-slate-50"
           aria-label="Artır"
         >
@@ -49,11 +61,11 @@ export function ProductActions({ product }: ProductActionsProps) {
         </button>
       </div>
 
-      <button onClick={handleAdd} className="btn-primary !px-8 !py-3">
-        {added ? (
+      <button type="button" onClick={handleAdd} className="btn-primary !px-8 !py-3">
+        {addedQty != null ? (
           <>
             <Check className="h-5 w-5" />
-            Sepete Eklendi
+            {addedQty} adet eklendi
           </>
         ) : (
           <>

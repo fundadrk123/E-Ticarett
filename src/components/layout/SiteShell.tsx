@@ -13,19 +13,22 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
 
-  if (isAdmin) {
-    return <>{children}</>;
-  }
-
+  // CartProvider her zaman üstte — sayfa değişince sepet sıfırlanmaz
   return (
     <AuthProvider>
       <CartProvider>
-        <TopBar />
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <WhatsAppButton />
-        <CookieBanner />
+        {isAdmin ? (
+          children
+        ) : (
+          <>
+            <TopBar />
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+            <WhatsAppButton />
+            <CookieBanner />
+          </>
+        )}
       </CartProvider>
     </AuthProvider>
   );

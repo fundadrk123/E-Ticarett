@@ -5,7 +5,7 @@ import {
   getServerBrands,
 } from "@/lib/server-data";
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 16;
 
 export default async function ProductsPage({
   searchParams,

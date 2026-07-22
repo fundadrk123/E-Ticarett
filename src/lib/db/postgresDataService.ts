@@ -241,9 +241,11 @@ export async function listProductsPg(
 
   const limitIdx = params.length + 1;
   const offsetIdx = params.length + 2;
+  // Liste için hafif kolonlar — description/features çekilmez
   const rows = await query<ProductRow>(
     `SELECT id, sku, name, slug, brand, category_id, price_ex_vat, price_inc_vat, unit,
-            pack_size, pack_unit, in_stock, is_new, is_restocked, image, description, features
+            pack_size, pack_unit, in_stock, is_new, is_restocked, image,
+            '' AS description, '' AS features
      FROM products ${whereSql}
      ORDER BY name ASC
      LIMIT $${limitIdx} OFFSET $${offsetIdx}`,

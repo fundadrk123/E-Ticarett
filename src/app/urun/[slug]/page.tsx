@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight, Check } from "lucide-react";
@@ -45,13 +44,15 @@ export default async function ProductDetailPage({ params }: Props) {
 
       <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
         <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={product.image}
             alt={product.name}
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 1024px) 100vw, 50vw"
+            width={800}
+            height={800}
+            fetchPriority="high"
+            decoding="async"
+            className="h-full w-full object-contain p-4"
           />
           {!product.inStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/40">

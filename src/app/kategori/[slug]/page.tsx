@@ -12,7 +12,7 @@ interface Props {
   searchParams?: Promise<{ sayfa?: string }>;
 }
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 16;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
