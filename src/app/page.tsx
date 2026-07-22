@@ -3,15 +3,17 @@ import { CategoryGrid } from "@/components/home/CategoryGrid";
 import { ProductSection } from "@/components/home/ProductSection";
 import { BrandSection } from "@/components/home/BrandSection";
 import {
-  getServerProducts,
+  getServerProductList,
   getServerNewProducts,
   getServerRestockedProducts,
 } from "@/lib/server-data";
 
 export default async function HomePage() {
-  const products = await getServerProducts();
-  const newProducts = await getServerNewProducts();
-  const restockedProducts = await getServerRestockedProducts();
+  const [featured, newProducts, restockedProducts] = await Promise.all([
+    getServerProductList({ page: 1, pageSize: 8 }),
+    getServerNewProducts(4),
+    getServerRestockedProducts(4),
+  ]);
 
   return (
     <>
@@ -20,7 +22,9 @@ export default async function HomePage() {
       <ProductSection
         title="Yeni Ürünler"
         subtitle="En son eklenen ürünlerimizi keşfedin"
-        products={newProducts.length > 0 ? newProducts : products.slice(0, 4)}
+        products={
+          newProducts.length > 0 ? newProducts : featured.items.slice(0, 4)
+        }
         viewAllHref="/urunler?filtre=yeni"
       />
       <BrandSection />
@@ -28,7 +32,7 @@ export default async function HomePage() {
         <ProductSection
           title="Öne Çıkan Ürünler"
           subtitle="En çok tercih edilen ürünler"
-          products={products.slice(0, 8)}
+          products={featured.items}
           viewAllHref="/urunler"
         />
       </div>

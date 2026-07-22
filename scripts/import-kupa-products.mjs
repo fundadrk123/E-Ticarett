@@ -105,7 +105,7 @@ async function main() {
   for (const p of raw) {
     const categoryId = categoryMap[p.category] || "4";
     const brand = getBrand(p.sku, p.name);
-    const price = Number(p.priceUsd);
+    const price = Number(p.priceTry ?? p.priceUsd);
     let slug = p.slug || slugify(`${p.sku}-${p.name}`);
     if (usedSlugs.has(slug)) slug = `${slug}-${p.sku.toLowerCase()}`;
     usedSlugs.add(slug);

@@ -10,6 +10,9 @@ import {
   getNewProductsPg,
   getRestockedProductsPg,
   searchProductsPg,
+  listProductsPg,
+  getCategoryMinPricesPg,
+  type ProductListFilters,
 } from "./db/postgresDataService";
 
 export const getServerCategories = cache(async () => getAllCategoriesPg());
@@ -27,10 +30,18 @@ export const getServerProductBySlug = cache(async (slug: string) =>
 export const getServerProductsByCategory = cache(async (categoryId: string) =>
   getProductsByCategoryPg(categoryId)
 );
-export const getServerNewProducts = cache(async () => getNewProductsPg());
-export const getServerRestockedProducts = cache(async () =>
-  getRestockedProductsPg()
+export const getServerNewProducts = cache(async (limit = 8) =>
+  getNewProductsPg(limit)
+);
+export const getServerRestockedProducts = cache(async (limit = 8) =>
+  getRestockedProductsPg(limit)
 );
 export const getServerSearchProducts = cache(async (query: string) =>
   searchProductsPg(query)
+);
+export const getServerProductList = cache(async (filters: ProductListFilters) =>
+  listProductsPg(filters)
+);
+export const getServerCategoryMinPrices = cache(async () =>
+  getCategoryMinPricesPg()
 );

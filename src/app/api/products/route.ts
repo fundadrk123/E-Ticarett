@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   getAllCategoriesPg,
-  getAllProductsPg,
-  searchProductsPg,
-  getNewProductsPg,
-  getRestockedProductsPg,
   getAllBrandsPg,
+  listProductsPg,
 } from "@/lib/db/postgresDataService";
 
 export async function GET(request: NextRequest) {
@@ -14,48 +11,48 @@ export async function GET(request: NextRequest) {
     const categoryParam = searchParams.get("category");
     const brandParam = searchParams.get("brand");
     const searchParam = searchParams.get("search");
+    const pageParam = searchParams.get("page");
     const limitParam = searchParams.get("limit");
     const onlyNew = searchParams.get("new") === "true";
     const onlyRestocked = searchParams.get("restocked") === "true";
     const onlyInStock = searchParams.get("inStock") === "true";
 
-    let filtered = await getAllProductsPg();
-
+    let categoryId: string | undefined;
     if (categoryParam) {
       const categories = await getAllCategoriesPg();
-      const categoryId =
-        categories.find((item) => item.slug === categoryParam)?.id ?? categoryParam;
-      filtered = filtered.filter((product) => product.categoryId === categoryId);
+      categoryId =
+        categories.find((item) => item.slug === categoryParam)?.id ??
+        categoryParam;
     }
 
+    let brand: string | undefined;
     if (brandParam) {
       const brands = await getAllBrandsPg();
-      const brandName =
+      brand =
         brands.find((item) => item.slug === brandParam)?.name ?? brandParam;
-      filtered = filtered.filter(
-        (product) => product.brand.toLowerCase() === brandName.toLowerCase()
-      );
     }
 
-    if (searchParam) {
-      filtered = await searchProductsPg(searchParam);
-    }
+    const pageSize = limitParam ? Number(limitParam) : 24;
+    const page = pageParam ? Number(pageParam) : 1;
 
-    if (onlyNew) filtered = await getNewProductsPg();
-    if (onlyRestocked) filtered = await getRestockedProductsPg();
-    if (onlyInStock) filtered = filtered.filter((product) => product.inStock);
-
-    if (limitParam) {
-      const limit = Number(limitParam);
-      if (!Number.isNaN(limit) && limit > 0) {
-        filtered = filtered.slice(0, limit);
-      }
-    }
+    const list = await listProductsPg({
+      categoryId,
+      brand,
+      search: searchParam || undefined,
+      onlyNew,
+      onlyRestocked,
+      onlyInStock,
+      page: Number.isNaN(page) ? 1 : page,
+      pageSize: Number.isNaN(pageSize) || pageSize <= 0 ? 24 : pageSize,
+    });
 
     return NextResponse.json({
       success: true,
-      total: filtered.length,
-      data: filtered,
+      total: list.total,
+      page: list.page,
+      pageSize: list.pageSize,
+      totalPages: list.totalPages,
+      data: list.items,
     });
   } catch (error) {
     console.error("Products API error:", error);

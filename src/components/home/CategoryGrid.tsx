@@ -2,23 +2,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { getServerCategories, getServerProducts } from "@/lib/server-data";
+import {
+  getServerCategories,
+  getServerCategoryMinPrices,
+} from "@/lib/server-data";
 
 export async function CategoryGrid() {
-  const categories = await getServerCategories();
-  const products = await getServerProducts();
-
-  const categoryCards = categories.map((cat) => {
-    const categoryProducts = products.filter((product) => product.categoryId === cat.id);
-    const cheapestProduct = [...categoryProducts].sort(
-      (a, b) => a.priceIncVat - b.priceIncVat
-    )[0];
-
-    return {
-      ...cat,
-      cheapestProduct,
-    };
-  });
+  const [categories, minPrices] = await Promise.all([
+    getServerCategories(),
+    getServerCategoryMinPrices(),
+  ]);
 
   return (
     <section className="py-12 lg:py-16">
@@ -41,7 +34,7 @@ export async function CategoryGrid() {
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {categoryCards.map((cat) => (
+          {categories.map((cat) => (
             <Link
               key={cat.id}
               href={`/kategori/${cat.slug}`}
@@ -55,6 +48,7 @@ export async function CategoryGrid() {
                   }
                   alt={cat.name}
                   fill
+                  loading="lazy"
                   className="object-cover transition duration-300 group-hover:scale-105"
                   sizes="(max-width: 768px) 100vw, 33vw"
                 />
@@ -77,13 +71,13 @@ export async function CategoryGrid() {
                   </span>
                 </div>
 
-                {cat.cheapestProduct && (
+                {minPrices[cat.id] != null && (
                   <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                       Başlangıç Fiyatı
                     </p>
                     <p className="mt-1 text-lg font-bold text-primary-600">
-                      {formatPrice(cat.cheapestProduct.priceIncVat)}
+                      {formatPrice(minPrices[cat.id])}
                     </p>
                   </div>
                 )}

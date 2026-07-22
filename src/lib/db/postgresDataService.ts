@@ -180,6 +180,99 @@ export async function getAllProductsPg(): Promise<Product[]> {
   return rows.map(mapProduct);
 }
 
+export type ProductListFilters = {
+  categoryId?: string;
+  brand?: string;
+  search?: string;
+  onlyNew?: boolean;
+  onlyRestocked?: boolean;
+  onlyInStock?: boolean;
+  page?: number;
+  pageSize?: number;
+  limit?: number;
+};
+
+export type ProductListResult = {
+  items: Product[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export async function listProductsPg(
+  filters: ProductListFilters = {}
+): Promise<ProductListResult> {
+  await ensureDb();
+
+  const pageSize = Math.max(1, filters.limit ?? filters.pageSize ?? 24);
+  const page = Math.max(1, filters.page ?? 1);
+  const offset = (page - 1) * pageSize;
+
+  const where: string[] = [];
+  const params: unknown[] = [];
+
+  if (filters.categoryId) {
+    params.push(filters.categoryId);
+    where.push(`category_id = $${params.length}`);
+  }
+  if (filters.brand) {
+    params.push(filters.brand);
+    where.push(`LOWER(brand) = LOWER($${params.length})`);
+  }
+  if (filters.search?.trim()) {
+    params.push(`%${filters.search.trim().toLowerCase()}%`);
+    const i = params.length;
+    where.push(
+      `(LOWER(name) LIKE $${i} OR LOWER(brand) LIKE $${i} OR LOWER(sku) LIKE $${i})`
+    );
+  }
+  if (filters.onlyNew) where.push("is_new = true");
+  if (filters.onlyRestocked) where.push("is_restocked = true");
+  if (filters.onlyInStock) where.push("in_stock = true");
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const countRow = await queryOne<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM products ${whereSql}`,
+    params
+  );
+  const total = Number(countRow?.count || 0);
+
+  const limitIdx = params.length + 1;
+  const offsetIdx = params.length + 2;
+  const rows = await query<ProductRow>(
+    `SELECT id, sku, name, slug, brand, category_id, price_ex_vat, price_inc_vat, unit,
+            pack_size, pack_unit, in_stock, is_new, is_restocked, image, description, features
+     FROM products ${whereSql}
+     ORDER BY name ASC
+     LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
+    [...params, pageSize, offset]
+  );
+
+  return {
+    items: rows.map(mapProduct),
+    total,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+  };
+}
+
+export async function getCategoryMinPricesPg(): Promise<
+  Record<string, number>
+> {
+  await ensureDb();
+  const rows = await query<{ category_id: string; min_price: string }>(
+    `SELECT category_id, MIN(price_inc_vat)::text AS min_price
+     FROM products
+     GROUP BY category_id`
+  );
+  return Object.fromEntries(
+    rows.map((r) => [r.category_id, Number(r.min_price)])
+  );
+}
+
 export async function getProductBySlugPg(slug: string) {
   await ensureDb();
   const row = await queryOne<ProductRow>(
@@ -203,36 +296,31 @@ export async function getProductByIdPg(id: string) {
 }
 
 export async function getProductsByCategoryPg(categoryId: string) {
-  await ensureDb();
-  const rows = await query<ProductRow>(
-    `SELECT id, sku, name, slug, brand, category_id, price_ex_vat, price_inc_vat, unit,
-            pack_size, pack_unit, in_stock, is_new, is_restocked, image, description, features
-     FROM products WHERE category_id = $1 ORDER BY name ASC`,
-    [categoryId]
-  );
-  return rows.map(mapProduct);
+  const result = await listProductsPg({
+    categoryId,
+    page: 1,
+    pageSize: 10_000,
+  });
+  return result.items;
 }
 
-export async function getNewProductsPg() {
-  const products = await getAllProductsPg();
-  return products.filter((p) => p.isNew);
+export async function getNewProductsPg(limit = 8) {
+  const result = await listProductsPg({ onlyNew: true, limit, page: 1 });
+  return result.items;
 }
 
-export async function getRestockedProductsPg() {
-  const products = await getAllProductsPg();
-  return products.filter((p) => p.isRestocked);
+export async function getRestockedProductsPg(limit = 8) {
+  const result = await listProductsPg({ onlyRestocked: true, limit, page: 1 });
+  return result.items;
 }
 
-export async function searchProductsPg(q: string) {
-  const products = await getAllProductsPg();
-  const queryText = q.toLowerCase().trim();
-  if (!queryText) return products;
-  return products.filter(
-    (p) =>
-      p.name.toLowerCase().includes(queryText) ||
-      p.brand.toLowerCase().includes(queryText) ||
-      p.sku.toLowerCase().includes(queryText)
-  );
+export async function searchProductsPg(q: string, limit = 100) {
+  const result = await listProductsPg({
+    search: q,
+    limit,
+    page: 1,
+  });
+  return result.items;
 }
 
 export async function createUserPg(data: {
