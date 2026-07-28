@@ -7,7 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { formatPrice, productThumb } from "@/lib/utils";
 
 export default function CartPage() {
-  const { items, itemCount, totalIncVat, updateQuantity, removeFromCart, clearCart } =
+  const { items, itemCount, totalIncVat, updateQuantity, removeFromCart, clearCart, ready } =
     useCart();
   const { user, loading } = useAuth();
   const checkoutHref = user ? "/odeme" : "/giris?redirect=/odeme";
@@ -16,6 +16,14 @@ export default function CartPage() {
     : loading
       ? "Yükleniyor..."
       : "Giriş Yap / Siparişi Tamamla";
+
+  if (!ready) {
+    return (
+      <div className="container-site py-16 text-center text-slate-500">
+        Yükleniyor...
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

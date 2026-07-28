@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth";
 import { getOrderByIdPg, updatePaymentStatusPg } from "@/lib/db/postgresDataService";
 import { initializeIyzicoCheckout, isIyzicoConfigured } from "@/lib/payment/iyzico";
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Ödeme için giriş yapmanız gerekiyor." },
+        { status: 401 }
+      );
+    }
+
     const { orderId } = await request.json();
     if (!orderId) {
       return NextResponse.json(
@@ -31,6 +40,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (order.userId && order.userId !== user.userId && user.role !== "admin") {
+      return NextResponse.json(
+        { success: false, message: "Bu sipariş için yetkiniz yok." },
+        { status: 403 }
+      );
+    }
+
+    if (!order.userId && order.email.toLowerCase() !== user.email.toLowerCase()) {
+      return NextResponse.json(
+        { success: false, message: "Bu sipariş için yetkiniz yok." },
+        { status: 403 }
+      );
+    }
+
+    if (order.paymentStatus === "paid") {
+      return NextResponse.json(
+        { success: false, message: "Bu sipariş zaten ödenmiş." },
+        { status: 400 }
+      );
+    }
+
     const buyerIp =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip") ||
@@ -53,6 +83,14 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Yetkisiz erişim." },
+        { status: 401 }
+      );
+    }
+
     const token = request.nextUrl.searchParams.get("token");
     if (!token) {
       return NextResponse.json(
@@ -65,7 +103,15 @@ export async function GET(request: NextRequest) {
     const result = await retrieveIyzicoPayment(token);
 
     if (result.paymentStatus === "SUCCESS" && result.conversationId) {
-      await updatePaymentStatusPg(result.conversationId, "paid");
+      const order = await getOrderByIdPg(result.conversationId);
+      if (
+        order &&
+        (order.userId === user.userId ||
+          order.email.toLowerCase() === user.email.toLowerCase() ||
+          user.role === "admin")
+      ) {
+        await updatePaymentStatusPg(result.conversationId, "paid");
+      }
     }
 
     return NextResponse.json({ success: true, data: result });

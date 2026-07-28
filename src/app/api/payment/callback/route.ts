@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { updatePaymentStatusPg } from "@/lib/db/postgresDataService";
+import { getOrderByIdPg, updatePaymentStatusPg } from "@/lib/db/postgresDataService";
 import { retrieveIyzicoPayment } from "@/lib/payment/iyzico";
 
 export async function POST(request: NextRequest) {
@@ -8,17 +8,21 @@ export async function POST(request: NextRequest) {
     const token = formData.get("token")?.toString();
 
     if (!token) {
-      return NextResponse.redirect(
-        new URL("/odeme/basarisiz", request.url)
-      );
+      return NextResponse.redirect(new URL("/odeme/basarisiz", request.url));
     }
 
     const result = await retrieveIyzicoPayment(token);
 
     if (result.paymentStatus === "SUCCESS" && result.conversationId) {
-      await updatePaymentStatusPg(result.conversationId, "paid");
+      const order = await updatePaymentStatusPg(result.conversationId, "paid");
+      const orderNumber = order?.orderNumber || "";
+      const params = new URLSearchParams({
+        orderId: result.conversationId,
+        clearCart: "1",
+      });
+      if (orderNumber) params.set("orderNumber", orderNumber);
       return NextResponse.redirect(
-        new URL(`/odeme/basarili?orderId=${result.conversationId}`, request.url)
+        new URL(`/odeme/basarili?${params.toString()}`, request.url)
       );
     }
 

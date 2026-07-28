@@ -34,6 +34,23 @@ export async function queryOne<T = Record<string, unknown>>(
   return rows[0];
 }
 
+export async function withTransaction<T>(
+  fn: (client: import("pg").PoolClient) => Promise<T>
+): Promise<T> {
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const result = await fn(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 export function parseFeatures(raw: string | null | undefined): string[] {
   if (!raw) return [];
   return raw.split("||").filter(Boolean);
@@ -188,7 +205,7 @@ async function seedCatalogData() {
         product.brand,
         product.categoryId,
         product.priceExVat,
-        product.priceIncVat,
+        Math.round(product.priceExVat * 1.2 * 100) / 100,
         product.unit,
         product.packSize ?? null,
         product.packUnit ?? null,
@@ -205,14 +222,27 @@ async function seedCatalogData() {
 
 async function seedAdminUser() {
   const adminEmail = process.env.ADMIN_EMAIL || "admin@mertemgrup.com";
-  const adminPassword = process.env.ADMIN_PASSWORD || "Admin123!";
+  const adminPassword = process.env.ADMIN_PASSWORD;
   const existing = await queryOne<{ id: string }>(
     "SELECT id FROM users WHERE email = $1",
     [adminEmail]
   );
   if (existing) return;
 
-  const hash = await bcrypt.hash(adminPassword, 12);
+  if (!adminPassword) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn(
+        "[security] ADMIN_PASSWORD tanımlı değil; production'da admin seed atlandı."
+      );
+      return;
+    }
+    console.warn(
+      "[security] ADMIN_PASSWORD yok; geliştirme için geçici Admin123! kullanılıyor."
+    );
+  }
+
+  const password = adminPassword || "Admin123!";
+  const hash = await bcrypt.hash(password, 12);
   await query(
     `INSERT INTO users (id, email, password_hash, name, role)
      VALUES ($1, $2, $3, $4, 'admin')`,

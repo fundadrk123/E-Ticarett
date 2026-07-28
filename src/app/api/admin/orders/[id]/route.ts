@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, { params }: Props) {
       paymentStatus?: PaymentStatus;
     };
 
-    const order = await updateOrderStatusPg(id, status || "pending", paymentStatus);
+    const order = await updateOrderStatusPg(id, status, paymentStatus);
     return NextResponse.json({ success: true, data: order });
   } catch (error) {
     console.error("Update order error:", error);

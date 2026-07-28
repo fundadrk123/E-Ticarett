@@ -11,7 +11,7 @@ import type { PaymentMethod } from "@/types";
 import { AddressLocationFields } from "@/components/checkout/AddressLocationFields";
 
 export default function CheckoutPage() {
-  const { items, totalIncVat, clearCart } = useCart();
+  const { items, totalIncVat, clearCart, ready } = useCart();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -38,6 +38,14 @@ export default function CheckoutPage() {
     }));
   }, [user]);
 
+  if (!ready || authLoading) {
+    return (
+      <div className="container-site py-16 text-center text-slate-500">
+        Yükleniyor...
+      </div>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <div className="container-site py-16 text-center">
@@ -45,14 +53,6 @@ export default function CheckoutPage() {
         <Link href="/urunler" className="btn-primary mt-6 inline-flex">
           Alışverişe Başla
         </Link>
-      </div>
-    );
-  }
-
-  if (authLoading) {
-    return (
-      <div className="container-site py-16 text-center text-slate-500">
-        Yükleniyor...
       </div>
     );
   }
@@ -181,7 +181,7 @@ export default function CheckoutPage() {
         const payJson = await payRes.json();
 
         if (payJson.success && payJson.data.checkoutFormContent) {
-          clearCart();
+          // Sepeti burada temizleme — ödeme başarılı callback'te / basarili sayfasında
           const win = window.open("", "_self");
           if (win) {
             win.document.write(payJson.data.checkoutFormContent);

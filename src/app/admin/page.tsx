@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Package, ShoppingBag, Users, TrendingUp, Clock } from "lucide-react";
+import Link from "next/link";
+import {
+  Package,
+  ShoppingBag,
+  Users,
+  TrendingUp,
+  Clock,
+  FolderTree,
+  ImagePlus,
+  Boxes,
+} from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { AdminStats } from "@/types";
 
@@ -30,9 +40,48 @@ export default function AdminDashboard() {
       ]
     : [];
 
+  const quickLinks = [
+    {
+      href: "/admin/urunler",
+      title: "Ürün Ekle / Stok Güncelle",
+      desc: "Yeni ürün, görsel yükleme ve stok durumu",
+      icon: ImagePlus,
+    },
+    {
+      href: "/admin/kategoriler",
+      title: "Kategori Yönetimi",
+      desc: "Kategori ekle, düzenle veya çıkar",
+      icon: FolderTree,
+    },
+    {
+      href: "/admin/siparisler",
+      title: "Siparişler",
+      desc: "Sipariş durumu ve ödeme takibi",
+      icon: Boxes,
+    },
+  ];
+
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-slate-800">Dashboard</h1>
+
+      <div className="mb-8 grid gap-3 sm:grid-cols-3">
+        {quickLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="card flex items-start gap-3 p-4 transition hover:border-primary-300 hover:shadow-md"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+              <link.icon className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800">{link.title}</p>
+              <p className="mt-0.5 text-xs text-slate-500">{link.desc}</p>
+            </div>
+          </Link>
+        ))}
+      </div>
 
       {!stats ? (
         <p className="text-slate-500">Yükleniyor...</p>

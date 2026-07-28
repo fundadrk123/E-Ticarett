@@ -108,14 +108,19 @@ export default function AdminProductsPage() {
       alert("SKU ve ürün adı zorunludur.");
       return;
     }
+    if (!editing.categoryId) {
+      alert("Kategori seçiniz.");
+      return;
+    }
     setSaving(true);
     const price = Number(editing.priceExVat) || 0;
+    const priceInc = Math.round(price * 1.2 * 100) / 100;
     const payload = {
       ...emptyProduct,
       ...editing,
       slug: editing.slug || toSlug(`${editing.sku}-${editing.name}`),
       priceExVat: price,
-      priceIncVat: price,
+      priceIncVat: priceInc,
       unit: editing.unit || "ADET",
       inStock: editing.inStock !== false,
       image: editing.image || "/products/kupa/page-007-main.jpg",
@@ -144,12 +149,21 @@ export default function AdminProductsPage() {
   };
 
   const toggleStock = async (product: Product) => {
-    await fetch(`/api/admin/products/${product.id}`, {
+    const next = !product.inStock;
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, inStock: next } : p))
+    );
+    const res = await fetch(`/api/admin/products/${product.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...product, inStock: !product.inStock }),
+      body: JSON.stringify({ ...product, inStock: next }),
     });
-    load();
+    const json = await res.json();
+    if (!json.success) {
+      alert(json.message || "Stok güncellenemedi.");
+      load();
+      return;
+    }
   };
 
   const remove = async (id: string) => {
@@ -168,7 +182,12 @@ export default function AdminProductsPage() {
           </p>
         </div>
         <button
-          onClick={() => setEditing({ ...emptyProduct })}
+          onClick={() =>
+            setEditing({
+              ...emptyProduct,
+              categoryId: categories[0]?.id || "",
+            })
+          }
           className="btn-primary flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -270,12 +289,15 @@ export default function AdminProductsPage() {
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
               />
               <select
-                value={editing.categoryId || "1"}
+                value={editing.categoryId || categories[0]?.id || ""}
                 onChange={(e) =>
                   setEditing({ ...editing, categoryId: e.target.value })
                 }
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               >
+                {categories.length === 0 && (
+                  <option value="">Önce kategori ekleyin</option>
+                )}
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -285,13 +307,19 @@ export default function AdminProductsPage() {
               <input
                 type="number"
                 step="0.01"
-                placeholder="Liste Fiyatı (TL)"
+                placeholder="Fiyat (KDV hariç, TL)"
                 value={editing.priceExVat ?? ""}
                 onChange={(e) =>
                   setEditing({ ...editing, priceExVat: Number(e.target.value) })
                 }
                 className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
               />
+              <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                KDV dahil (%20):{" "}
+                {formatPrice(
+                  Math.round((Number(editing.priceExVat) || 0) * 1.2 * 100) / 100
+                )}
+              </p>
               <input
                 placeholder="Birim (ADET)"
                 value={editing.unit || ""}
@@ -319,6 +347,17 @@ export default function AdminProductsPage() {
                   className="h-4 w-4"
                 />
                 Yeni ürün
+              </label>
+              <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!editing.isRestocked}
+                  onChange={(e) =>
+                    setEditing({ ...editing, isRestocked: e.target.checked })
+                  }
+                  className="h-4 w-4"
+                />
+                Yeniden stoğa girdi
               </label>
               <textarea
                 placeholder="Açıklama"

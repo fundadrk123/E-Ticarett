@@ -55,6 +55,11 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
               YENİ
             </span>
           )}
+          {product.isRestocked && (
+            <span className="rounded bg-primary-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
+              STOK
+            </span>
+          )}
           {!product.inStock && (
             <span className="rounded bg-slate-600 px-1.5 py-0.5 text-[10px] font-bold text-white">
               YAKINDA
@@ -77,6 +82,9 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
           <>
             <p className="mt-auto text-base font-bold text-primary-600">
               {formatPrice(product.priceIncVat)}
+              <span className="ml-1 text-[10px] font-medium text-slate-400">
+                KDV dahil
+              </span>
             </p>
             <div className="mt-2 flex items-center gap-2">
               <div className="flex items-center rounded-lg border border-slate-200 bg-white">

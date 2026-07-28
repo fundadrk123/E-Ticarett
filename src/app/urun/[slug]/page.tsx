@@ -75,12 +75,14 @@ export default async function ProductDetailPage({ params }: Props) {
             <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
               <p className="text-sm text-slate-500">
                 <span className="font-medium">Liste Fiyatı</span>
+                <span className="ml-1 text-xs">(KDV dahil)</span>
               </p>
               <p className="mt-1 text-3xl font-bold text-primary-600">
                 {formatPrice(product.priceIncVat)}
               </p>
               <p className="mt-1 text-xs text-slate-400">
-                Birim: {product.unit}
+                KDV hariç: {formatPrice(product.priceExVat)} · Birim:{" "}
+                {product.unit}
                 {product.packSize &&
                   ` | ${product.packUnit} (${product.packSize} adet)`}
               </p>

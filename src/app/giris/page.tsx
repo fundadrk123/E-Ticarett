@@ -6,11 +6,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { User, Mail, Lock, Eye, EyeOff, Phone } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Suspense } from "react";
+import { sanitizeRedirectPath } from "@/lib/utils";
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/hesabim";
+  const redirect = sanitizeRedirectPath(searchParams.get("redirect"), "/hesabim");
   const initialRegister = searchParams.get("mode") === "register";
   const [isLogin, setIsLogin] = useState(!initialRegister);
   const [email, setEmail] = useState("");

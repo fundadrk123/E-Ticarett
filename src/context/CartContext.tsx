@@ -16,6 +16,7 @@ interface CartContextType {
   itemCount: number;
   totalExVat: number;
   totalIncVat: number;
+  ready: boolean;
   addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -165,6 +166,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       totalExVat,
       totalIncVat,
+      ready,
       addToCart,
       removeFromCart,
       updateQuantity,
@@ -176,6 +178,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       itemCount,
       totalExVat,
       totalIncVat,
+      ready,
       addToCart,
       removeFromCart,
       updateQuantity,

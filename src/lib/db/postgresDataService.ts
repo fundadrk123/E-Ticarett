@@ -5,6 +5,7 @@ import {
   initializeDatabase,
   parseFeatures,
   serializeFeatures,
+  withTransaction,
 } from "./postgres";
 import type {
   Category,
@@ -114,8 +115,9 @@ export async function getAllCategoriesPg(): Promise<Category[]> {
     image: string | null;
     description: string | null;
   }>(
-    `SELECT id, name, slug, icon, product_count, image, description
-     FROM categories ORDER BY name ASC`
+    `SELECT c.id, c.name, c.slug, c.icon, c.image, c.description,
+            COALESCE((SELECT COUNT(*)::int FROM products p WHERE p.category_id = c.id), 0) AS product_count
+     FROM categories c ORDER BY c.name ASC`
   );
   return rows.map((row) => ({
     id: row.id,
@@ -139,8 +141,9 @@ export async function getCategoryBySlugPg(slug: string) {
     image: string | null;
     description: string | null;
   }>(
-    `SELECT id, name, slug, icon, product_count, image, description
-     FROM categories WHERE slug = $1`,
+    `SELECT c.id, c.name, c.slug, c.icon, c.image, c.description,
+            COALESCE((SELECT COUNT(*)::int FROM products p WHERE p.category_id = c.id), 0) AS product_count
+     FROM categories c WHERE c.slug = $1`,
     [slug]
   );
   if (!row) return undefined;
@@ -206,8 +209,7 @@ export async function listProductsPg(
   await ensureDb();
 
   const pageSize = Math.max(1, filters.limit ?? filters.pageSize ?? 24);
-  const page = Math.max(1, filters.page ?? 1);
-  const offset = (page - 1) * pageSize;
+  const rawPage = Math.max(1, filters.page ?? 1);
 
   const where: string[] = [];
   const params: unknown[] = [];
@@ -238,6 +240,9 @@ export async function listProductsPg(
     params
   );
   const total = Number(countRow?.count || 0);
+  const totalPages = Math.max(1, Math.ceil(total / pageSize) || 1);
+  const page = Math.min(rawPage, totalPages);
+  const offset = (page - 1) * pageSize;
 
   const limitIdx = params.length + 1;
   const offsetIdx = params.length + 2;
@@ -257,7 +262,7 @@ export async function listProductsPg(
     total,
     page,
     pageSize,
-    totalPages: Math.max(1, Math.ceil(total / pageSize)),
+    totalPages,
   };
 }
 
@@ -406,68 +411,73 @@ export async function createOrderPg(
   const orderItems: OrderItem[] = [];
 
   for (const item of payload.items) {
+    const quantity = Math.floor(Number(item.quantity));
+    if (!Number.isFinite(quantity) || quantity < 1) {
+      throw new Error("INVALID_QUANTITY");
+    }
+
     const product = await getProductByIdPg(item.productId);
     if (!product) throw new Error(`PRODUCT_NOT_FOUND:${item.productId}`);
     if (!product.inStock) throw new Error(`OUT_OF_STOCK:${product.sku}`);
 
-    totalExVat += product.priceExVat * item.quantity;
-    totalIncVat += product.priceIncVat * item.quantity;
+    totalExVat += product.priceExVat * quantity;
+    totalIncVat += product.priceIncVat * quantity;
 
-    const orderItem: OrderItem = {
+    orderItems.push({
       id: randomUUID(),
       orderId,
       productId: product.id,
       productName: product.name,
       sku: product.sku,
-      quantity: item.quantity,
+      quantity,
       unitPriceExVat: product.priceExVat,
       unitPriceIncVat: product.priceIncVat,
-    };
-    orderItems.push(orderItem);
+    });
   }
 
-  const initialPaymentStatus: PaymentStatus =
-    payload.paymentMethod === "credit_card" ? "pending" : "pending";
+  const initialPaymentStatus: PaymentStatus = "pending";
 
-  await query(
-    `INSERT INTO orders (
-      id, order_number, user_id, email, customer_name, phone, status, payment_status,
-      payment_method, total_ex_vat, total_inc_vat, shipping_address, notes
-    ) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$8,$9,$10,$11,$12)`,
-    [
-      orderId,
-      orderNumber,
-      userId || null,
-      payload.email.toLowerCase(),
-      payload.customerName,
-      payload.phone,
-      initialPaymentStatus,
-      payload.paymentMethod,
-      totalExVat,
-      totalIncVat,
-      JSON.stringify(payload.shippingAddress),
-      payload.notes || null,
-    ]
-  );
-
-  for (const item of orderItems) {
-    await query(
-      `INSERT INTO order_items (
-        id, order_id, product_id, product_name, sku, quantity,
-        unit_price_ex_vat, unit_price_inc_vat
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+  await withTransaction(async (client) => {
+    await client.query(
+      `INSERT INTO orders (
+        id, order_number, user_id, email, customer_name, phone, status, payment_status,
+        payment_method, total_ex_vat, total_inc_vat, shipping_address, notes
+      ) VALUES ($1,$2,$3,$4,$5,$6,'pending',$7,$8,$9,$10,$11,$12)`,
       [
-        item.id,
-        item.orderId,
-        item.productId,
-        item.productName,
-        item.sku,
-        item.quantity,
-        item.unitPriceExVat,
-        item.unitPriceIncVat,
+        orderId,
+        orderNumber,
+        userId || null,
+        payload.email.toLowerCase(),
+        payload.customerName,
+        payload.phone,
+        initialPaymentStatus,
+        payload.paymentMethod,
+        totalExVat,
+        totalIncVat,
+        JSON.stringify(payload.shippingAddress),
+        payload.notes || null,
       ]
     );
-  }
+
+    for (const item of orderItems) {
+      await client.query(
+        `INSERT INTO order_items (
+          id, order_id, product_id, product_name, sku, quantity,
+          unit_price_ex_vat, unit_price_inc_vat
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          item.id,
+          item.orderId,
+          item.productId,
+          item.productName,
+          item.sku,
+          item.quantity,
+          item.unitPriceExVat,
+          item.unitPriceIncVat,
+        ]
+      );
+    }
+  });
 
   const order = await getOrderByIdPg(orderId);
   if (!order) throw new Error("ORDER_CREATE_FAILED");
@@ -535,12 +545,16 @@ export async function trackOrderPg(email: string, orderNumber: string) {
 
 export async function getOrdersByUserPg(userId: string): Promise<Order[]> {
   await ensureDb();
+  const user = await getUserByIdPg(userId);
   const rows = await query<Parameters<typeof mapOrder>[0]>(
     `SELECT id, order_number, user_id, email, customer_name, phone, status,
             payment_status, payment_method, total_ex_vat, total_inc_vat,
             shipping_address, notes, created_at, updated_at
-     FROM orders WHERE user_id = $1 ORDER BY created_at DESC`,
-    [userId]
+     FROM orders
+     WHERE user_id = $1
+        OR ($2::text IS NOT NULL AND LOWER(email) = LOWER($2))
+     ORDER BY created_at DESC`,
+    [userId, user?.email || null]
   );
   const orders = rows.map(mapOrder);
   for (const order of orders) {
@@ -566,21 +580,20 @@ export async function getAllOrdersPg(): Promise<Order[]> {
 
 export async function updateOrderStatusPg(
   orderId: string,
-  status: OrderStatus,
+  status?: OrderStatus,
   paymentStatus?: PaymentStatus
 ) {
   await ensureDb();
-  if (paymentStatus) {
-    await query(
-      `UPDATE orders SET status = $1, payment_status = $2, updated_at = NOW() WHERE id = $3`,
-      [status, paymentStatus, orderId]
-    );
-  } else {
-    await query(`UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`, [
-      status,
-      orderId,
-    ]);
-  }
+  const current = await getOrderByIdPg(orderId);
+  if (!current) throw new Error("NOT_FOUND");
+
+  const nextStatus = status ?? current.status;
+  const nextPayment = paymentStatus ?? current.paymentStatus;
+
+  await query(
+    `UPDATE orders SET status = $1, payment_status = $2, updated_at = NOW() WHERE id = $3`,
+    [nextStatus, nextPayment, orderId]
+  );
   return getOrderByIdPg(orderId);
 }
 
@@ -623,6 +636,7 @@ export async function createProductPg(data: Omit<Product, "id">) {
       serializeFeatures(data.features),
     ]
   );
+  await refreshCategoryProductCountsPg();
   return getProductByIdPg(id);
 }
 
@@ -658,12 +672,14 @@ export async function updateProductPg(id: string, data: Partial<Product>) {
       serializeFeatures(merged.features),
     ]
   );
+  await refreshCategoryProductCountsPg();
   return getProductByIdPg(id);
 }
 
 export async function deleteProductPg(id: string) {
   await ensureDb();
   await query("DELETE FROM products WHERE id = $1", [id]);
+  await refreshCategoryProductCountsPg();
 }
 
 export async function getAdminStatsPg(): Promise<AdminStats> {
@@ -707,6 +723,43 @@ export async function getAllUsersPg(): Promise<User[]> {
     role: row.role,
     createdAt: row.created_at.toISOString(),
   }));
+}
+
+export async function updateUserRolePg(id: string, role: "user" | "admin") {
+  await ensureDb();
+  if (role !== "user" && role !== "admin") throw new Error("INVALID_ROLE");
+  const result = await query("UPDATE users SET role = $2 WHERE id = $1 RETURNING id", [
+    id,
+    role,
+  ]);
+  if (!result[0]) throw new Error("NOT_FOUND");
+  const rows = await query<{
+    id: string;
+    email: string;
+    name: string;
+    phone: string | null;
+    role: "user" | "admin";
+    created_at: Date;
+  }>("SELECT id, email, name, phone, role, created_at FROM users WHERE id = $1", [id]);
+  const row = rows[0];
+  return {
+    id: row.id,
+    email: row.email,
+    name: row.name,
+    phone: row.phone || undefined,
+    role: row.role,
+    createdAt: row.created_at.toISOString(),
+  } satisfies User;
+}
+
+export async function refreshCategoryProductCountsPg() {
+  await ensureDb();
+  await query(`
+    UPDATE categories c
+    SET product_count = COALESCE((
+      SELECT COUNT(*)::int FROM products p WHERE p.category_id = c.id
+    ), 0)
+  `);
 }
 
 export async function createCategoryPg(data: Omit<Category, "id">) {
@@ -753,5 +806,18 @@ export async function updateCategoryPg(id: string, data: Partial<Category>) {
 
 export async function deleteCategoryPg(id: string) {
   await ensureDb();
+  const linked = await queryOne<{ count: string }>(
+    "SELECT COUNT(*)::text AS count FROM products WHERE category_id = $1",
+    [id]
+  );
+  const count = Number(linked?.count || 0);
+  if (count > 0) {
+    throw new Error(`HAS_PRODUCTS:${count}`);
+  }
+  const existing = await queryOne<{ id: string }>(
+    "SELECT id FROM categories WHERE id = $1",
+    [id]
+  );
+  if (!existing) throw new Error("NOT_FOUND");
   await query("DELETE FROM categories WHERE id = $1", [id]);
 }

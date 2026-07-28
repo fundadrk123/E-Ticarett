@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -12,7 +12,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { siteConfig } from "@/data/site";
-import { categories as categoryData } from "@/data/categories";
+import type { Category } from "@/types";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 
@@ -20,10 +20,23 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const categories = categoryData;
+  const [categories, setCategories] = useState<Category[]>([]);
   const { itemCount } = useCart();
   const { user, logout, loading } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!cancelled && json.success) setCategories(json.data);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

@@ -17,10 +17,10 @@ export function isIyzicoConfigured() {
 function generateAuthorizationHeader(
   apiKey: string,
   secretKey: string,
+  randomKey: string,
   uri: string,
   body: string
 ) {
-  const randomKey = Date.now().toString() + "123456789";
   const payload = randomKey + uri + body;
   const signature = crypto
     .createHmac("sha256", secretKey)
@@ -30,9 +30,37 @@ function generateAuthorizationHeader(
   return `IYZWSv2 ${Buffer.from(authorizationString).toString("base64")}`;
 }
 
-export async function initializeIyzicoCheckout(order: Order, buyerIp: string) {
+async function iyzicoRequest(uri: string, requestBody: unknown) {
   const { apiKey, secretKey, baseUrl } = getIyzicoConfig();
   if (!apiKey || !secretKey) {
+    throw new Error("IYZICO_NOT_CONFIGURED");
+  }
+
+  const body = JSON.stringify(requestBody);
+  const randomKey = `${Date.now()}${Math.floor(Math.random() * 1e9)}`;
+  const authorization = generateAuthorizationHeader(
+    apiKey,
+    secretKey,
+    randomKey,
+    uri,
+    body
+  );
+
+  const response = await fetch(`${baseUrl}${uri}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: authorization,
+      "x-iyzi-rnd": randomKey,
+    },
+    body,
+  });
+
+  return response.json();
+}
+
+export async function initializeIyzicoCheckout(order: Order, buyerIp: string) {
+  if (!isIyzicoConfigured()) {
     throw new Error("IYZICO_NOT_CONFIGURED");
   }
 
@@ -54,7 +82,7 @@ export async function initializeIyzicoCheckout(order: Order, buyerIp: string) {
       surname: order.customerName.split(" ").slice(1).join(" ") || "-",
       gsmNumber: order.phone || "+905000000000",
       email: order.email,
-      identityNumber: "11111111111",
+      identityNumber: process.env.IYZICO_TEST_IDENTITY || "11111111111",
       registrationAddress: order.shippingAddress.addressLine,
       ip: buyerIp,
       city: order.shippingAddress.city,
@@ -81,20 +109,7 @@ export async function initializeIyzicoCheckout(order: Order, buyerIp: string) {
     })),
   };
 
-  const body = JSON.stringify(requestBody);
-  const authorization = generateAuthorizationHeader(apiKey, secretKey, uri, body);
-
-  const response = await fetch(`${baseUrl}${uri}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: authorization,
-      "x-iyzi-rnd": Date.now().toString(),
-    },
-    body,
-  });
-
-  const data = await response.json();
+  const data = await iyzicoRequest(uri, requestBody);
   if (data.status !== "success") {
     throw new Error(data.errorMessage || "IYZICO_INIT_FAILED");
   }
@@ -107,20 +122,6 @@ export async function initializeIyzicoCheckout(order: Order, buyerIp: string) {
 }
 
 export async function retrieveIyzicoPayment(token: string) {
-  const { apiKey, secretKey, baseUrl } = getIyzicoConfig();
   const uri = "/payment/iyzipos/checkoutform/auth/ecom/detail";
-  const body = JSON.stringify({ locale: "tr", token });
-  const authorization = generateAuthorizationHeader(apiKey, secretKey, uri, body);
-
-  const response = await fetch(`${baseUrl}${uri}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: authorization,
-      "x-iyzi-rnd": Date.now().toString(),
-    },
-    body,
-  });
-
-  return response.json();
+  return iyzicoRequest(uri, { locale: "tr", token });
 }
