@@ -26,6 +26,13 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: "Sipariş için giriş yapmanız gerekiyor." },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json()) as CreateOrderPayload;
 
     if (!body.items?.length || !body.email || !body.customerName || !body.shippingAddress) {
@@ -35,7 +42,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const order = await createOrderPg(body, user?.userId);
+    const order = await createOrderPg(body, user.userId);
 
     if (body.paymentMethod === "bank_transfer" || body.paymentMethod === "cash_on_delivery") {
       const { updateOrderStatusPg } = await import("@/lib/db/postgresDataService");

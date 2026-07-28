@@ -3,11 +3,19 @@
 import Link from "next/link";
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { formatPrice, productThumb } from "@/lib/utils";
 
 export default function CartPage() {
   const { items, itemCount, totalIncVat, updateQuantity, removeFromCart, clearCart } =
     useCart();
+  const { user, loading } = useAuth();
+  const checkoutHref = user ? "/odeme" : "/giris?redirect=/odeme";
+  const checkoutLabel = user
+    ? "Siparişi Tamamla"
+    : loading
+      ? "Yükleniyor..."
+      : "Giriş Yap / Siparişi Tamamla";
 
   if (items.length === 0) {
     return (
@@ -137,8 +145,8 @@ export default function CartPage() {
               {formatPrice(totalIncVat)}
             </span>
           </div>
-          <Link href="/odeme" className="btn-accent mt-6 w-full">
-            Siparişi Tamamla
+          <Link href={checkoutHref} className="btn-accent mt-6 w-full text-center">
+            {checkoutLabel}
           </Link>
           <Link
             href="/urunler"

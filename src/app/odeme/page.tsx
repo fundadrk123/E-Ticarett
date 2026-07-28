@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LogIn, UserPlus, ShoppingBag, Lock } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
@@ -11,21 +12,31 @@ import { AddressLocationFields } from "@/components/checkout/AddressLocationFiel
 
 export default function CheckoutPage() {
   const { items, totalIncVat, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
   const [form, setForm] = useState({
-    customerName: user?.name || "",
-    email: user?.email || "",
-    phone: user?.phone || "",
+    customerName: "",
+    email: "",
+    phone: "",
     addressLine: "",
     city: "",
     district: "",
     postalCode: "",
     notes: "",
   });
+
+  useEffect(() => {
+    if (!user) return;
+    setForm((prev) => ({
+      ...prev,
+      customerName: prev.customerName || user.name || "",
+      email: prev.email || user.email || "",
+      phone: prev.phone || user.phone || "",
+    }));
+  }, [user]);
 
   if (items.length === 0) {
     return (
@@ -34,6 +45,90 @@ export default function CheckoutPage() {
         <Link href="/urunler" className="btn-primary mt-6 inline-flex">
           Alışverişe Başla
         </Link>
+      </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <div className="container-site py-16 text-center text-slate-500">
+        Yükleniyor...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container-site py-10 lg:py-16">
+        <div className="mx-auto max-w-xl">
+          <div className="card p-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+              <Lock className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800">
+              Siparişi tamamlamak için giriş yapın
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-slate-500">
+              Siparişinizi güvenle takip edebilmeniz için hesabınızla devam
+              etmeniz gerekiyor. Hesabınız yoksa hemen ücretsiz kayıt olabilirsiniz.
+            </p>
+
+            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left">
+              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <ShoppingBag className="h-4 w-4 text-primary-600" />
+                Sepet özeti
+              </div>
+              <div className="space-y-1.5">
+                {items.slice(0, 4).map(({ product, quantity }) => (
+                  <div
+                    key={product.id}
+                    className="flex justify-between gap-3 text-sm text-slate-600"
+                  >
+                    <span className="line-clamp-1">
+                      {product.name} ×{quantity}
+                    </span>
+                    <span className="shrink-0 font-medium">
+                      {formatPrice(product.priceIncVat * quantity)}
+                    </span>
+                  </div>
+                ))}
+                {items.length > 4 && (
+                  <p className="text-xs text-slate-400">
+                    +{items.length - 4} ürün daha
+                  </p>
+                )}
+              </div>
+              <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-sm font-bold text-slate-800">
+                <span>Toplam</span>
+                <span className="text-primary-600">{formatPrice(totalIncVat)}</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Link
+                href="/giris?redirect=/odeme"
+                className="btn-primary inline-flex items-center justify-center gap-2 !py-3"
+              >
+                <LogIn className="h-4 w-4" />
+                Giriş Yap
+              </Link>
+              <Link
+                href="/giris?mode=register&redirect=/odeme"
+                className="btn-outline inline-flex items-center justify-center gap-2 !py-3"
+              >
+                <UserPlus className="h-4 w-4" />
+                Kayıt Ol
+              </Link>
+            </div>
+
+            <Link
+              href="/sepet"
+              className="mt-4 inline-block text-sm font-medium text-primary-600 hover:text-primary-700"
+            >
+              Sepete dön
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -113,12 +208,15 @@ export default function CheckoutPage() {
 
   return (
     <div className="container-site py-8 lg:py-12">
-      <h1 className="mb-8 text-2xl font-bold text-slate-800 lg:text-3xl">
+      <h1 className="mb-2 text-2xl font-bold text-slate-800 lg:text-3xl">
         Ödeme ve Teslimat
       </h1>
+      <p className="mb-8 text-sm text-slate-500">
+        Giriş yapan hesap: <span className="font-medium text-slate-700">{user.email}</span>
+      </p>
 
       <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <div className="card p-6">
             <h2 className="mb-4 font-bold text-slate-800">İletişim Bilgileri</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -177,9 +275,21 @@ export default function CheckoutPage() {
             <h2 className="mb-4 font-bold text-slate-800">Ödeme Yöntemi</h2>
             <div className="space-y-3">
               {[
-                { value: "bank_transfer" as const, label: "Havale / EFT", desc: "Sipariş onayından sonra IBAN bilgisi gönderilir" },
-                { value: "cash_on_delivery" as const, label: "Kapıda Ödeme", desc: "Teslimat sırasında nakit veya kart ile ödeme" },
-                { value: "credit_card" as const, label: "Kredi Kartı (iyzico)", desc: "Güvenli online ödeme" },
+                {
+                  value: "bank_transfer" as const,
+                  label: "Havale / EFT",
+                  desc: "Sipariş onayından sonra IBAN bilgisi gönderilir",
+                },
+                {
+                  value: "cash_on_delivery" as const,
+                  label: "Kapıda Ödeme",
+                  desc: "Teslimat sırasında nakit veya kart ile ödeme",
+                },
+                {
+                  value: "credit_card" as const,
+                  label: "Kredi Kartı (iyzico)",
+                  desc: "Güvenli online ödeme",
+                },
               ].map((method) => (
                 <label
                   key={method.value}

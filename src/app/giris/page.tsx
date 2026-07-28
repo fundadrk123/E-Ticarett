@@ -9,7 +9,10 @@ import { Suspense } from "react";
 
 function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get("redirect") || "/hesabim";
+  const initialRegister = searchParams.get("mode") === "register";
+  const [isLogin, setIsLogin] = useState(!initialRegister);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -18,8 +21,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/hesabim";
+  const isCheckoutRedirect = redirect.startsWith("/odeme");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +54,22 @@ function LoginForm() {
               {isLogin ? "Giriş Yap" : "Hesap Oluştur"}
             </h1>
             <p className="mt-1 text-sm text-slate-500">
-              {isLogin
-                ? "Hesabınıza giriş yaparak alışverişe devam edin"
-                : "Yeni hesap oluşturarak toptan fiyatlardan yararlanın"}
+              {isCheckoutRedirect
+                ? isLogin
+                  ? "Giriş yaptıktan sonra siparişinizi tamamlayabilirsiniz"
+                  : "Kayıt olduktan sonra siparişinizi tamamlayabilirsiniz"
+                : isLogin
+                  ? "Hesabınıza giriş yaparak alışverişe devam edin"
+                  : "Yeni hesap oluşturarak toptan fiyatlardan yararlanın"}
             </p>
           </div>
+
+          {isCheckoutRedirect && (
+            <div className="mb-4 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-800">
+              Sepetiniz korunuyor. Giriş veya kayıt sonrası ödeme sayfasına
+              yönlendirileceksiniz.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
@@ -152,7 +165,11 @@ function LoginForm() {
               disabled={loading}
               className="btn-primary w-full !py-3 disabled:opacity-60"
             >
-              {loading ? "Lütfen bekleyin..." : isLogin ? "Giriş Yap" : "Kayıt Ol"}
+              {loading
+                ? "Lütfen bekleyin..."
+                : isLogin
+                  ? "Giriş Yap ve Devam Et"
+                  : "Kayıt Ol ve Devam Et"}
             </button>
           </form>
 
