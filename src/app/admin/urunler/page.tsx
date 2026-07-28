@@ -227,6 +227,9 @@ export default function AdminProductsPage() {
 
           <div className="grid gap-4 lg:grid-cols-[180px_1fr]">
             <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Ürün Görseli
+              </p>
               <div className="relative aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
                 {editing.image ? (
                   <Image
@@ -261,113 +264,182 @@ export default function AdminProductsPage() {
                 <Upload className="h-4 w-4" />
                 {uploading ? "Yükleniyor..." : "Görsel Yükle"}
               </button>
-              <input
-                placeholder="veya görsel URL / yol"
-                value={editing.image || ""}
-                onChange={(e) => setEditing({ ...editing, image: e.target.value })}
-                className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
-              />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-slate-600">
+                  Görsel URL / yol
+                </label>
+                <input
+                  placeholder="/uploads/products/..."
+                  value={editing.image || ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, image: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                />
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
-              <input
-                placeholder="Stok Kodu (SKU) *"
-                value={editing.sku || ""}
-                onChange={(e) => setEditing({ ...editing, sku: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="Marka"
-                value={editing.brand || ""}
-                onChange={(e) => setEditing({ ...editing, brand: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="Ürün Adı *"
-                value={editing.name || ""}
-                onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
-              />
-              <select
-                value={editing.categoryId || categories[0]?.id || ""}
-                onChange={(e) =>
-                  setEditing({ ...editing, categoryId: e.target.value })
-                }
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              >
-                {categories.length === 0 && (
-                  <option value="">Önce kategori ekleyin</option>
-                )}
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="number"
-                step="0.01"
-                placeholder="Fiyat (KDV hariç, TL)"
-                value={editing.priceExVat ?? ""}
-                onChange={(e) =>
-                  setEditing({ ...editing, priceExVat: Number(e.target.value) })
-                }
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                KDV dahil (%20):{" "}
-                {formatPrice(
-                  Math.round((Number(editing.priceExVat) || 0) * 1.2 * 100) / 100
-                )}
-              </p>
-              <input
-                placeholder="Birim (ADET)"
-                value={editing.unit || ""}
-                onChange={(e) => setEditing({ ...editing, unit: e.target.value })}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-              <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Stok Kodu (SKU) *
+                </label>
                 <input
-                  type="checkbox"
-                  checked={editing.inStock !== false}
+                  placeholder="Örn: KT-1001"
+                  value={editing.sku || ""}
                   onChange={(e) =>
-                    setEditing({ ...editing, inStock: e.target.checked })
+                    setEditing({ ...editing, sku: e.target.value })
                   }
-                  className="h-4 w-4"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
-                Stokta var
-              </label>
-              <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Marka
+                </label>
                 <input
-                  type="checkbox"
-                  checked={!!editing.isNew}
+                  placeholder="Örn: Kupa Tools"
+                  value={editing.brand || ""}
                   onChange={(e) =>
-                    setEditing({ ...editing, isNew: e.target.checked })
+                    setEditing({ ...editing, brand: e.target.value })
                   }
-                  className="h-4 w-4"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
-                Yeni ürün
-              </label>
-              <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Ürün Adı *
+                </label>
                 <input
-                  type="checkbox"
-                  checked={!!editing.isRestocked}
+                  placeholder="Ürün adını yazın"
+                  value={editing.name || ""}
                   onChange={(e) =>
-                    setEditing({ ...editing, isRestocked: e.target.checked })
+                    setEditing({ ...editing, name: e.target.value })
                   }
-                  className="h-4 w-4"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
-                Yeniden stoğa girdi
-              </label>
-              <textarea
-                placeholder="Açıklama"
-                value={editing.description || ""}
-                onChange={(e) =>
-                  setEditing({ ...editing, description: e.target.value })
-                }
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
-                rows={3}
-              />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Kategori
+                </label>
+                <select
+                  value={editing.categoryId || categories[0]?.id || ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, categoryId: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                >
+                  {categories.length === 0 && (
+                    <option value="">Önce kategori ekleyin</option>
+                  )}
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Birim
+                </label>
+                <input
+                  placeholder="ADET"
+                  value={editing.unit || ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, unit: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Fiyat (KDV hariç, TL)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={editing.priceExVat ?? ""}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      priceExVat: Number(e.target.value),
+                    })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Fiyat (KDV dahil, %20)
+                </label>
+                <p className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-700">
+                  {formatPrice(
+                    Math.round(
+                      (Number(editing.priceExVat) || 0) * 1.2 * 100
+                    ) / 100
+                  )}
+                </p>
+              </div>
+              <div className="sm:col-span-2">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Stok ve etiketler
+                </p>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editing.inStock !== false}
+                      onChange={(e) =>
+                        setEditing({ ...editing, inStock: e.target.checked })
+                      }
+                      className="h-4 w-4"
+                    />
+                    Stokta var
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={!!editing.isNew}
+                      onChange={(e) =>
+                        setEditing({ ...editing, isNew: e.target.checked })
+                      }
+                      className="h-4 w-4"
+                    />
+                    Yeni ürün
+                  </label>
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={!!editing.isRestocked}
+                      onChange={(e) =>
+                        setEditing({
+                          ...editing,
+                          isRestocked: e.target.checked,
+                        })
+                      }
+                      className="h-4 w-4"
+                    />
+                    Yeniden stoğa girdi
+                  </label>
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <label className="mb-1 block text-xs font-semibold text-slate-600">
+                  Açıklama
+                </label>
+                <textarea
+                  placeholder="Ürün açıklaması"
+                  value={editing.description || ""}
+                  onChange={(e) =>
+                    setEditing({ ...editing, description: e.target.value })
+                  }
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                  rows={3}
+                />
+              </div>
             </div>
           </div>
 

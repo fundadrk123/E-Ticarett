@@ -77,10 +77,10 @@ export function Header() {
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           {!loading && user ? (
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="flex items-center gap-1 sm:gap-2">
               <Link
                 href="/hesabim"
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                className="hidden rounded-lg px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 sm:inline-flex"
               >
                 {user.name.split(" ")[0]}
               </Link>
@@ -94,7 +94,7 @@ export function Header() {
               )}
               <button
                 onClick={() => logout()}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100"
+                className="hidden rounded-lg px-3 py-2 text-sm font-medium text-slate-500 hover:bg-slate-100 sm:inline-flex"
               >
                 Çıkış
               </button>
@@ -222,13 +222,44 @@ export function Header() {
               </Link>
             ))}
             <hr className="my-2 border-slate-200" />
-            <Link
-              href="/giris"
-              onClick={() => setMenuOpen(false)}
-              className="block rounded-lg px-2 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              Giriş Yap / Hesap Oluştur
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/hesabim"
+                  onClick={() => setMenuOpen(false)}
+                  className="block rounded-lg px-2 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Hesabım
+                </Link>
+                {user.role === "admin" && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMenuOpen(false)}
+                    className="block rounded-lg bg-accent-500 px-2 py-2.5 text-sm font-medium text-white"
+                  >
+                    Admin Paneli
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                  }}
+                  className="block w-full rounded-lg px-2 py-2.5 text-left text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Çıkış Yap
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/giris"
+                onClick={() => setMenuOpen(false)}
+                className="block rounded-lg px-2 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Giriş Yap / Hesap Oluştur
+              </Link>
+            )}
           </div>
         </div>
       )}

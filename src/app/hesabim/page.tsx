@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, LogOut, MapPin, CreditCard } from "lucide-react";
+import { Package, LogOut, MapPin, CreditCard, Shield } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
 import type { Order } from "@/types";
@@ -135,6 +135,36 @@ export default function AccountPage() {
           </p>
         </div>
       </div>
+
+      {user.role === "admin" && (
+        <div className="card mb-8 border-accent-200 bg-accent-50/40 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <Shield className="h-5 w-5 text-accent-600" />
+            <h2 className="text-lg font-bold text-slate-800">Yönetim Paneli</h2>
+          </div>
+          <p className="mb-4 text-sm text-slate-600">
+            Ürün, kategori, stok, fiyat, görsel ve kullanıcı rolleri buradan
+            yönetilir (Hesabım sayfasından değil).
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <Link href="/admin/urunler" className="btn-primary justify-center">
+              Ürün / Stok / Fiyat / Görsel
+            </Link>
+            <Link href="/admin/kategoriler" className="btn-outline justify-center">
+              Kategoriler
+            </Link>
+            <Link href="/admin/kullanicilar" className="btn-outline justify-center">
+              Kullanıcı Rolleri
+            </Link>
+            <Link href="/admin/siparisler" className="btn-outline justify-center">
+              Siparişler
+            </Link>
+            <Link href="/admin" className="btn-outline justify-center sm:col-span-2 lg:col-span-1">
+              Admin Ana Sayfa
+            </Link>
+          </div>
+        </div>
+      )}
 
       <h2 className="mb-4 text-lg font-bold text-slate-800">Sipariş Geçmişi</h2>
 
