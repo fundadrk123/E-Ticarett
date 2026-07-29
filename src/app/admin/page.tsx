@@ -34,6 +34,11 @@ export default function AdminDashboard() {
         { label: "Toplam Ürün", value: stats.totalProducts, icon: Package },
         { label: "Toplam Sipariş", value: stats.totalOrders, icon: ShoppingBag },
         { label: "Bekleyen Sipariş", value: stats.pendingOrders, icon: Clock },
+        {
+          label: "İşlem Bekleyen",
+          value: stats.openOrders ?? stats.pendingOrders,
+          icon: ShoppingBag,
+        },
         { label: "Kullanıcı", value: stats.totalUsers, icon: Users },
         {
           label: "Toplam Gelir",

@@ -6,7 +6,7 @@ import {
   updateOrderStatusPg,
   clearCartPg,
 } from "@/lib/db/postgresDataService";
-import { sendOrderConfirmationEmail } from "@/lib/email";
+import { sendOrderConfirmationEmail, sendAdminNewOrderEmail } from "@/lib/email";
 import type { CreateOrderPayload } from "@/types";
 
 function mapOrderError(message: string) {
@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
 
     sendOrderConfirmationEmail(finalOrder).catch((err) =>
       console.error("Order email error:", err)
+    );
+    sendAdminNewOrderEmail(finalOrder).catch((err) =>
+      console.error("Admin order email error:", err)
     );
 
     if (user) {

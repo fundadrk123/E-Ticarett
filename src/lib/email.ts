@@ -187,3 +187,50 @@ export async function sendRefundEmail(order: Order) {
     `,
   });
 }
+
+/** Yeni sipariş → admin / CONTACT_INBOX e-postası */
+export async function sendAdminNewOrderEmail(order: Order) {
+  const to =
+    process.env.CONTACT_INBOX ||
+    process.env.ADMIN_EMAIL ||
+    process.env.SMTP_FROM ||
+    "";
+  if (!to) {
+    console.info("[email:admin-order]", {
+      orderNumber: order.orderNumber,
+      total: order.totalIncVat,
+    });
+    return;
+  }
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const methodLabels: Record<string, string> = {
+    bank_transfer: "Havale / EFT",
+    cash_on_delivery: "Kapıda ödeme",
+    credit_card: "Kredi kartı",
+  };
+
+  await sendMail({
+    to,
+    subject: `Yeni sipariş — ${order.orderNumber}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#0f172a">
+        <h2>Yeni sipariş alındı</h2>
+        <p><strong>${order.orderNumber}</strong></p>
+        <p>Müşteri: ${order.customerName}<br/>
+           E-posta: ${order.email}<br/>
+           Telefon: ${order.phone || "—"}</p>
+        <p>Ödeme: ${methodLabels[order.paymentMethod] || order.paymentMethod}<br/>
+           Durum: ${order.status} / ${order.paymentStatus}</p>
+        ${orderItemsHtml(order)}
+        <p style="margin-top:12px"><strong>Toplam: ${formatTry(order.totalIncVat)}</strong></p>
+        <p style="margin-top:16px">
+          <a href="${siteUrl}/admin/siparisler" style="display:inline-block;padding:10px 16px;background:#1d4ed8;color:#fff;text-decoration:none;border-radius:8px">
+            Siparişleri aç
+          </a>
+        </p>
+      </div>
+    `,
+  });
+}
+

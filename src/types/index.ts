@@ -161,6 +161,11 @@ export interface AdminStats {
   productsOutOfStock: number;
   /** Tüm ürünlerdeki toplam stok adedi */
   totalStockQty: number;
+  /** İşlem bekleyen sipariş (pending + confirmed) */
+  openOrders: number;
+  /** Son sipariş zamanı (ISO) — bildirim için */
+  latestOrderAt?: string;
+  latestOrderNumber?: string;
 }
 
 export interface CreateOrderPayload {

@@ -888,38 +888,49 @@ export async function deleteProductPg(id: string) {
 
 export async function getAdminStatsPg(): Promise<AdminStats> {
   await ensureDb();
-  const [products, orders, pending, users, revenue, stock] = await Promise.all([
-    queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM products"),
-    queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM orders"),
-    queryOne<{ count: string }>(
-      "SELECT COUNT(*)::text AS count FROM orders WHERE status = 'pending'"
-    ),
-    queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM users"),
-    queryOne<{ total: string }>(
-      "SELECT COALESCE(SUM(total_inc_vat),0)::text AS total FROM orders WHERE payment_status = 'paid'"
-    ),
-    queryOne<{
-      in_stock: string;
-      out_of_stock: string;
-      total_qty: string;
-    }>(
-      `SELECT
-         COUNT(*) FILTER (WHERE COALESCE(stock_qty, 0) > 0)::text AS in_stock,
-         COUNT(*) FILTER (WHERE COALESCE(stock_qty, 0) <= 0)::text AS out_of_stock,
-         COALESCE(SUM(COALESCE(stock_qty, 0)), 0)::text AS total_qty
-       FROM products`
-    ),
-  ]);
+  const [products, orders, pending, open, users, revenue, stock, latest] =
+    await Promise.all([
+      queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM products"),
+      queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM orders"),
+      queryOne<{ count: string }>(
+        "SELECT COUNT(*)::text AS count FROM orders WHERE status = 'pending'"
+      ),
+      queryOne<{ count: string }>(
+        `SELECT COUNT(*)::text AS count FROM orders
+         WHERE status IN ('pending', 'confirmed')`
+      ),
+      queryOne<{ count: string }>("SELECT COUNT(*)::text AS count FROM users"),
+      queryOne<{ total: string }>(
+        "SELECT COALESCE(SUM(total_inc_vat),0)::text AS total FROM orders WHERE payment_status = 'paid'"
+      ),
+      queryOne<{
+        in_stock: string;
+        out_of_stock: string;
+        total_qty: string;
+      }>(
+        `SELECT
+           COUNT(*) FILTER (WHERE COALESCE(stock_qty, 0) > 0)::text AS in_stock,
+           COUNT(*) FILTER (WHERE COALESCE(stock_qty, 0) <= 0)::text AS out_of_stock,
+           COALESCE(SUM(COALESCE(stock_qty, 0)), 0)::text AS total_qty
+         FROM products`
+      ),
+      queryOne<{ order_number: string; created_at: Date }>(
+        `SELECT order_number, created_at FROM orders ORDER BY created_at DESC LIMIT 1`
+      ),
+    ]);
 
   return {
     totalProducts: Number(products?.count || 0),
     totalOrders: Number(orders?.count || 0),
     pendingOrders: Number(pending?.count || 0),
+    openOrders: Number(open?.count || 0),
     totalUsers: Number(users?.count || 0),
     totalRevenue: Number(revenue?.total || 0),
     productsInStock: Number(stock?.in_stock || 0),
     productsOutOfStock: Number(stock?.out_of_stock || 0),
     totalStockQty: Number(stock?.total_qty || 0),
+    latestOrderAt: latest?.created_at?.toISOString(),
+    latestOrderNumber: latest?.order_number,
   };
 }
 
