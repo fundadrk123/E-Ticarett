@@ -4,7 +4,7 @@ import "./globals.css";
 import { SiteShell } from "@/components/layout/SiteShell";
 import { siteConfig } from "@/data/site";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], display: "swap" });
 
 export const metadata: Metadata = {
   title: {

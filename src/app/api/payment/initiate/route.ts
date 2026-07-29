@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getOrderByIdPg, updatePaymentStatusPg } from "@/lib/db/postgresDataService";
+import {
+  getOrderByIdPg,
+  updatePaymentStatusPg,
+  setOrderPaymentIdPg,
+} from "@/lib/db/postgresDataService";
 import { initializeIyzicoCheckout, isIyzicoConfigured } from "@/lib/payment/iyzico";
 
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "Ödeme için giriş yapmanız gerekiyor." },
-        { status: 401 }
-      );
-    }
-
-    const { orderId } = await request.json();
+    const { orderId, email } = await request.json();
     if (!orderId) {
       return NextResponse.json(
         { success: false, message: "Sipariş ID gerekli." },
@@ -40,16 +37,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (order.userId && order.userId !== user.userId && user.role !== "admin") {
-      return NextResponse.json(
-        { success: false, message: "Bu sipariş için yetkiniz yok." },
-        { status: 403 }
-      );
-    }
+    const emailMatch =
+      email &&
+      typeof email === "string" &&
+      order.email.toLowerCase() === email.toLowerCase();
 
-    if (!order.userId && order.email.toLowerCase() !== user.email.toLowerCase()) {
+    if (user) {
+      const allowed =
+        user.role === "admin" ||
+        (order.userId && order.userId === user.userId) ||
+        order.email.toLowerCase() === user.email.toLowerCase();
+      if (!allowed) {
+        return NextResponse.json(
+          { success: false, message: "Bu sipariş için yetkiniz yok." },
+          { status: 403 }
+        );
+      }
+    } else if (!emailMatch) {
       return NextResponse.json(
-        { success: false, message: "Bu sipariş için yetkiniz yok." },
+        {
+          success: false,
+          message: "Misafir ödeme için sipariş e-postası doğrulanmalı.",
+        },
         { status: 403 }
       );
     }
@@ -83,14 +92,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json(
-        { success: false, message: "Yetkisiz erişim." },
-        { status: 401 }
-      );
-    }
-
     const token = request.nextUrl.searchParams.get("token");
     if (!token) {
       return NextResponse.json(
@@ -103,14 +104,12 @@ export async function GET(request: NextRequest) {
     const result = await retrieveIyzicoPayment(token);
 
     if (result.paymentStatus === "SUCCESS" && result.conversationId) {
-      const order = await getOrderByIdPg(result.conversationId);
-      if (
-        order &&
-        (order.userId === user.userId ||
-          order.email.toLowerCase() === user.email.toLowerCase() ||
-          user.role === "admin")
-      ) {
-        await updatePaymentStatusPg(result.conversationId, "paid");
+      await updatePaymentStatusPg(result.conversationId, "paid");
+      if (result.paymentId) {
+        await setOrderPaymentIdPg(
+          result.conversationId,
+          String(result.paymentId)
+        );
       }
     }
 

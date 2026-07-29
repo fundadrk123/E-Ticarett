@@ -1,14 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getServerBrands, getServerProducts } from "@/lib/server-data";
+import {
+  getServerBrands,
+  getServerBrandProductCounts,
+} from "@/lib/server-data";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Markalar",
 };
 
 export default async function BrandsPage() {
-  const brands = await getServerBrands();
-  const products = await getServerProducts();
+  const [brands, counts] = await Promise.all([
+    getServerBrands(),
+    getServerBrandProductCounts(),
+  ]);
 
   return (
     <div className="container-site py-8 lg:py-12">
@@ -23,11 +30,12 @@ export default async function BrandsPage() {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {brands.map((brand) => {
-          const count = products.filter((p) => p.brand === brand.name).length;
+          const count = counts[brand.name] ?? 0;
           return (
             <Link
               key={brand.id}
               href={`/urunler?marka=${brand.slug}`}
+              prefetch
               className="card group flex items-center justify-between p-6 hover:border-primary-300"
             >
               <div>

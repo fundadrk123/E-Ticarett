@@ -4,6 +4,9 @@ import { randomUUID } from "crypto";
 
 let pool: Pool | null = null;
 let initialized = false;
+let initPromise: Promise<void> | null = null;
+
+const SCHEMA_VERSION = 2;
 
 function getPool(): Pool {
   if (!pool) {
@@ -13,6 +16,9 @@ function getPool(): Pool {
       database: process.env.POSTGRES_DB,
       password: process.env.POSTGRES_PASSWORD,
       port: Number(process.env.POSTGRES_PORT || 5432),
+      max: Number(process.env.POSTGRES_POOL_MAX || 10),
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000,
     });
   }
   return pool;
@@ -110,6 +116,7 @@ export async function initPostgresSchema() {
       pack_size INTEGER,
       pack_unit TEXT,
       in_stock BOOLEAN NOT NULL DEFAULT true,
+      stock_qty INTEGER NOT NULL DEFAULT 0,
       is_new BOOLEAN NOT NULL DEFAULT false,
       is_restocked BOOLEAN NOT NULL DEFAULT false,
       image TEXT NOT NULL,
@@ -129,8 +136,14 @@ export async function initPostgresSchema() {
       payment_method TEXT NOT NULL,
       total_ex_vat NUMERIC(12,2) NOT NULL,
       total_inc_vat NUMERIC(12,2) NOT NULL,
+      discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+      coupon_code TEXT,
       shipping_address JSONB NOT NULL,
       notes TEXT,
+      tracking_number TEXT,
+      cargo_company TEXT,
+      payment_id TEXT,
+      guest_token TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -154,7 +167,108 @@ export async function initPostgresSchema() {
     CREATE INDEX IF NOT EXISTS idx_orders_email ON orders(email);
     CREATE INDEX IF NOT EXISTS idx_orders_number ON orders(order_number);
     CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);
+
+    CREATE TABLE IF NOT EXISTS addresses (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      label TEXT NOT NULL DEFAULT 'Adres',
+      full_name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      address_line TEXT NOT NULL,
+      city TEXT NOT NULL,
+      district TEXT NOT NULL,
+      postal_code TEXT,
+      is_default BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL UNIQUE,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS coupons (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      type TEXT NOT NULL,
+      value NUMERIC(12,2) NOT NULL,
+      min_order_inc_vat NUMERIC(12,2) NOT NULL DEFAULT 0,
+      max_uses INTEGER,
+      used_count INTEGER NOT NULL DEFAULT 0,
+      active BOOLEAN NOT NULL DEFAULT true,
+      expires_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE TABLE IF NOT EXISTS cart_items (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      UNIQUE(user_id, product_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS contact_messages (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      subject TEXT NOT NULL,
+      message TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_addresses_user ON addresses(user_id);
+    CREATE INDEX IF NOT EXISTS idx_cart_user ON cart_items(user_id);
+    CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
+    CREATE INDEX IF NOT EXISTS idx_reset_token ON password_reset_tokens(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_products_in_stock ON products(stock_qty) WHERE stock_qty > 0;
+    CREATE INDEX IF NOT EXISTS idx_products_is_new ON products(is_new) WHERE is_new = true;
+    CREATE INDEX IF NOT EXISTS idx_products_is_restocked ON products(is_restocked) WHERE is_restocked = true;
+
+    CREATE TABLE IF NOT EXISTS schema_meta (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
+
+  // Mevcut DB'ler için kolon migrasyonları (ucuz / IF NOT EXISTS)
+  await query(`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS stock_qty INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_number TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS cargo_company TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_id TEXT;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS guest_token TEXT;
+  `);
+
+  // Stok backfill sadece bir kez (her boot'ta full-table UPDATE yapma)
+  const versionRow = await queryOne<{ value: string }>(
+    `SELECT value FROM schema_meta WHERE key = 'schema_version'`
+  );
+  const currentVersion = Number(versionRow?.value || 0);
+  if (currentVersion < 2) {
+    await query(`
+      UPDATE products
+      SET stock_qty = 100
+      WHERE in_stock = true AND COALESCE(stock_qty, 0) = 0
+    `);
+    await query(`
+      UPDATE products
+      SET in_stock = (COALESCE(stock_qty, 0) > 0)
+    `);
+    await query(
+      `INSERT INTO schema_meta (key, value) VALUES ('schema_version', $1)
+       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()`,
+      [String(SCHEMA_VERSION)]
+    );
+  }
 }
 
 async function seedCatalogData() {
@@ -191,11 +305,12 @@ async function seedCatalogData() {
   }
 
   for (const product of staticProducts) {
+    const stockQty = product.inStock ? 100 : 0;
     await query(
       `INSERT INTO products (
         id, sku, name, slug, brand, category_id, price_ex_vat, price_inc_vat, unit,
-        pack_size, pack_unit, in_stock, is_new, is_restocked, image, description, features
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+        pack_size, pack_unit, in_stock, stock_qty, is_new, is_restocked, image, description, features
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       ON CONFLICT (id) DO NOTHING`,
       [
         product.id,
@@ -209,7 +324,8 @@ async function seedCatalogData() {
         product.unit,
         product.packSize ?? null,
         product.packUnit ?? null,
-        product.inStock,
+        stockQty > 0,
+        stockQty,
         product.isNew ?? false,
         product.isRestocked ?? false,
         product.image,
@@ -252,8 +368,16 @@ async function seedAdminUser() {
 
 export async function initializeDatabase() {
   if (initialized) return;
-  await initPostgresSchema();
-  await seedCatalogData();
-  await seedAdminUser();
-  initialized = true;
+  if (initPromise) return initPromise;
+
+  initPromise = (async () => {
+    await initPostgresSchema();
+    await seedCatalogData();
+    await seedAdminUser();
+    initialized = true;
+  })().finally(() => {
+    if (!initialized) initPromise = null;
+  });
+
+  return initPromise;
 }

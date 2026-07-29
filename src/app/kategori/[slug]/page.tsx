@@ -7,6 +7,8 @@ import {
 import { ProductCard } from "@/components/products/ProductCard";
 import { Pagination } from "@/components/products/Pagination";
 
+export const revalidate = 60;
+
 interface Props {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ sayfa?: string }>;

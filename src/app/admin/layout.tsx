@@ -6,6 +6,8 @@ import {
   Users,
   FolderTree,
   ArrowLeft,
+  Tag,
+  TicketPercent,
 } from "lucide-react";
 
 const navItems = [
@@ -13,6 +15,8 @@ const navItems = [
   { href: "/admin/urunler", label: "Ürünler", icon: Package },
   { href: "/admin/siparisler", label: "Siparişler", icon: ShoppingBag },
   { href: "/admin/kategoriler", label: "Kategoriler", icon: FolderTree },
+  { href: "/admin/markalar", label: "Markalar", icon: Tag },
+  { href: "/admin/kuponlar", label: "Kuponlar", icon: TicketPercent },
   { href: "/admin/kullanicilar", label: "Kullanıcılar", icon: Users },
 ];
 

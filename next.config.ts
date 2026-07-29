@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    optimizePackageImports: ["lucide-react"],
+  },
+  // Sayfa geçişlerinde RSC payload sıkıştırma
+  compress: true,
+  poweredByHeader: false,
 };
 
 export default nextConfig;

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrderByIdPg, updatePaymentStatusPg } from "@/lib/db/postgresDataService";
+import {
+  updatePaymentStatusPg,
+  setOrderPaymentIdPg,
+} from "@/lib/db/postgresDataService";
 import { retrieveIyzicoPayment } from "@/lib/payment/iyzico";
 
 export async function POST(request: NextRequest) {
@@ -15,6 +18,12 @@ export async function POST(request: NextRequest) {
 
     if (result.paymentStatus === "SUCCESS" && result.conversationId) {
       const order = await updatePaymentStatusPg(result.conversationId, "paid");
+      if (result.paymentId) {
+        await setOrderPaymentIdPg(
+          result.conversationId,
+          String(result.paymentId)
+        );
+      }
       const orderNumber = order?.orderNumber || "";
       const params = new URLSearchParams({
         orderId: result.conversationId,

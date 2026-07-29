@@ -125,3 +125,22 @@ export async function retrieveIyzicoPayment(token: string) {
   const uri = "/payment/iyzipos/checkoutform/auth/ecom/detail";
   return iyzicoRequest(uri, { locale: "tr", token });
 }
+
+export async function refundIyzicoPayment(paymentId: string, price: number) {
+  if (!isIyzicoConfigured()) {
+    throw new Error("IYZICO_NOT_CONFIGURED");
+  }
+  const uri = "/payment/refund";
+  const data = await iyzicoRequest(uri, {
+    locale: "tr",
+    conversationId: paymentId,
+    paymentTransactionId: paymentId,
+    price: price.toFixed(2),
+    currency: "TRY",
+  });
+  if (data.status !== "success") {
+    throw new Error(data.errorMessage || "IYZICO_REFUND_FAILED");
+  }
+  return data;
+}
+

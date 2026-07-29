@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Package, LogOut, MapPin, CreditCard, Shield } from "lucide-react";
+import { Package, LogOut, MapPin, CreditCard, Shield, Truck } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
-import type { Order } from "@/types";
+import type { Order, SavedAddress } from "@/types";
+import { AddressLocationFields } from "@/components/checkout/AddressLocationFields";
 
 const statusLabels: Record<string, string> = {
   pending: "Beklemede",
@@ -39,32 +40,49 @@ const statusClass: Record<string, string> = {
 };
 
 export default function AccountPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, refresh } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [profile, setProfile] = useState({ name: "", phone: "" });
+  const [profileMsg, setProfileMsg] = useState("");
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [addrForm, setAddrForm] = useState({
+    label: "Ev",
+    fullName: "",
+    phone: "",
+    addressLine: "",
+    city: "",
+    district: "",
+    postalCode: "",
+    isDefault: false,
+  });
 
   useEffect(() => {
     if (!user) {
       setOrders([]);
       return;
     }
+    setProfile({ name: user.name, phone: user.phone || "" });
 
     let cancelled = false;
     setOrdersLoading(true);
     setOrdersError("");
 
-    fetch("/api/orders")
-      .then(async (r) => {
-        const json = await r.json();
+    Promise.all([
+      fetch("/api/orders").then((r) => r.json()),
+      fetch("/api/account/addresses").then((r) => r.json()),
+    ])
+      .then(([ordJson, addrJson]) => {
         if (cancelled) return;
-        if (!json.success) {
-          setOrdersError(json.message || "Siparişler yüklenemedi.");
+        if (!ordJson.success) {
+          setOrdersError(ordJson.message || "Siparişler yüklenemedi.");
           setOrders([]);
-          return;
+        } else {
+          setOrders(ordJson.data || []);
         }
-        setOrders(json.data || []);
+        if (addrJson.success) setAddresses(addrJson.data || []);
       })
       .catch(() => {
         if (!cancelled) {
@@ -80,6 +98,53 @@ export default function AccountPage() {
       cancelled = true;
     };
   }, [user]);
+
+  const saveProfile = async () => {
+    setProfileMsg("");
+    const res = await fetch("/api/account/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profile),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setProfileMsg("Profil güncellendi.");
+      await refresh();
+    } else {
+      setProfileMsg(json.message || "Güncellenemedi.");
+    }
+  };
+
+  const addAddress = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch("/api/account/addresses", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(addrForm),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setAddresses((prev) => [json.data, ...prev]);
+      setAddrForm({
+        label: "Ev",
+        fullName: user?.name || "",
+        phone: user?.phone || "",
+        addressLine: "",
+        city: "",
+        district: "",
+        postalCode: "",
+        isDefault: false,
+      });
+    } else {
+      alert(json.message || "Adres eklenemedi.");
+    }
+  };
+
+  const removeAddress = async (id: string) => {
+    if (!confirm("Adresi silmek istiyor musunuz?")) return;
+    await fetch(`/api/account/addresses/${id}`, { method: "DELETE" });
+    setAddresses((prev) => prev.filter((a) => a.id !== id));
+  };
 
   if (loading) {
     return (
@@ -119,20 +184,120 @@ export default function AccountPage() {
         </button>
       </div>
 
-      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+      <div className="mb-8 grid gap-6 lg:grid-cols-2">
         <div className="card p-5">
-          <p className="text-sm text-slate-500">E-Posta</p>
-          <p className="mt-1 font-semibold text-slate-800">{user.email}</p>
+          <h2 className="mb-4 font-bold text-slate-800">Profil Bilgileri</h2>
+          <div className="space-y-3">
+            <input
+              value={profile.name}
+              onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+              placeholder="Ad Soyad"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              value={user.email}
+              disabled
+              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
+            />
+            <input
+              value={profile.phone}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+              placeholder="Telefon"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <button type="button" onClick={saveProfile} className="btn-primary !py-2 text-sm">
+              Kaydet
+            </button>
+            {profileMsg && <p className="text-sm text-slate-600">{profileMsg}</p>}
+          </div>
         </div>
+
         <div className="card p-5">
-          <p className="text-sm text-slate-500">Telefon</p>
-          <p className="mt-1 font-semibold text-slate-800">{user.phone || "-"}</p>
-        </div>
-        <div className="card p-5">
-          <p className="text-sm text-slate-500">Toplam Sipariş</p>
-          <p className="mt-1 font-semibold text-slate-800">
-            {ordersLoading ? "…" : orders.length}
-          </p>
+          <h2 className="mb-4 font-bold text-slate-800">Kayıtlı Adresler</h2>
+          <div className="mb-4 space-y-2">
+            {addresses.length === 0 && (
+              <p className="text-sm text-slate-500">Henüz kayıtlı adres yok.</p>
+            )}
+            {addresses.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-start justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              >
+                <div>
+                  <p className="font-medium text-slate-800">
+                    {a.label}
+                    {a.isDefault ? " · Varsayılan" : ""}
+                  </p>
+                  <p className="text-slate-500">
+                    {a.addressLine}, {a.district}/{a.city}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeAddress(a.id)}
+                  className="text-xs text-red-600 hover:underline"
+                >
+                  Sil
+                </button>
+              </div>
+            ))}
+          </div>
+          <form onSubmit={addAddress} className="space-y-2 border-t border-slate-100 pt-4">
+            <p className="text-xs font-semibold uppercase text-slate-500">Yeni adres</p>
+            <input
+              required
+              value={addrForm.label}
+              onChange={(e) => setAddrForm({ ...addrForm, label: e.target.value })}
+              placeholder="Etiket (Ev, İş)"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              required
+              value={addrForm.fullName}
+              onChange={(e) => setAddrForm({ ...addrForm, fullName: e.target.value })}
+              placeholder="Ad Soyad"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <input
+              required
+              value={addrForm.phone}
+              onChange={(e) => setAddrForm({ ...addrForm, phone: e.target.value })}
+              placeholder="Telefon"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <textarea
+              required
+              rows={2}
+              value={addrForm.addressLine}
+              onChange={(e) => setAddrForm({ ...addrForm, addressLine: e.target.value })}
+              placeholder="Adres"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+            <AddressLocationFields
+              city={addrForm.city}
+              district={addrForm.district}
+              postalCode={addrForm.postalCode}
+              onCityChange={(city) =>
+                setAddrForm({ ...addrForm, city, district: "", postalCode: "" })
+              }
+              onDistrictChange={(district, postalCode) =>
+                setAddrForm({ ...addrForm, district, postalCode })
+              }
+            />
+            <label className="flex items-center gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={addrForm.isDefault}
+                onChange={(e) =>
+                  setAddrForm({ ...addrForm, isDefault: e.target.checked })
+                }
+              />
+              Varsayılan adres
+            </label>
+            <button type="submit" className="btn-outline !py-2 text-sm">
+              Adres Ekle
+            </button>
+          </form>
         </div>
       </div>
 
@@ -142,24 +307,20 @@ export default function AccountPage() {
             <Shield className="h-5 w-5 text-accent-600" />
             <h2 className="text-lg font-bold text-slate-800">Yönetim Paneli</h2>
           </div>
-          <p className="mb-4 text-sm text-slate-600">
-            Ürün, kategori, stok, fiyat, görsel ve kullanıcı rolleri buradan
-            yönetilir (Hesabım sayfasından değil).
-          </p>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             <Link href="/admin/urunler" className="btn-primary justify-center">
-              Ürün / Stok / Fiyat / Görsel
+              Ürün / Stok
             </Link>
-            <Link href="/admin/kategoriler" className="btn-outline justify-center">
-              Kategoriler
+            <Link href="/admin/markalar" className="btn-outline justify-center">
+              Markalar
             </Link>
-            <Link href="/admin/kullanicilar" className="btn-outline justify-center">
-              Kullanıcı Rolleri
+            <Link href="/admin/kuponlar" className="btn-outline justify-center">
+              Kuponlar
             </Link>
             <Link href="/admin/siparisler" className="btn-outline justify-center">
               Siparişler
             </Link>
-            <Link href="/admin" className="btn-outline justify-center sm:col-span-2 lg:col-span-1">
+            <Link href="/admin" className="btn-outline justify-center">
               Admin Ana Sayfa
             </Link>
           </div>
@@ -216,9 +377,6 @@ export default function AccountPage() {
                     <p className="font-bold text-primary-600">
                       {formatPrice(order.totalIncVat)}
                     </p>
-                    <span className="text-xs text-slate-400">
-                      {open ? "Gizle" : "Detay"}
-                    </span>
                   </div>
                 </button>
 
@@ -233,6 +391,15 @@ export default function AccountPage() {
                         {paymentStatusLabels[order.paymentStatus] ||
                           order.paymentStatus}
                       </p>
+                      {(order.trackingNumber || order.cargoCompany) && (
+                        <p className="flex items-center gap-1.5">
+                          <Truck className="h-4 w-4 text-slate-400" />
+                          {order.cargoCompany || "Kargo"}
+                          {order.trackingNumber
+                            ? ` · Takip: ${order.trackingNumber}`
+                            : ""}
+                        </p>
+                      )}
                       {order.shippingAddress && (
                         <p className="flex items-start gap-1.5">
                           <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
@@ -272,11 +439,7 @@ export default function AccountPage() {
                           </li>
                         ))}
                       </ul>
-                    ) : (
-                      <p className="text-sm text-slate-500">
-                        Sipariş kalemleri bulunamadı.
-                      </p>
-                    )}
+                    ) : null}
 
                     <div className="flex justify-end text-sm">
                       <p className="font-bold text-slate-800">

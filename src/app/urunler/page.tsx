@@ -5,6 +5,8 @@ import {
   getServerBrands,
 } from "@/lib/server-data";
 
+export const revalidate = 60;
+
 const PAGE_SIZE = 16;
 
 export default async function ProductsPage({
@@ -23,30 +25,82 @@ export default async function ProductsPage({
   const brandSlug = params.marka || "";
   const page = Math.max(1, Number(params.sayfa) || 1);
 
-  const brands = await getServerBrands();
-  const brand = brandSlug
-    ? brands.find((b) => b.slug === brandSlug)
-    : undefined;
+  const brandsPromise = getServerBrands();
 
-  const list = await getServerProductList({
-    search: query || undefined,
-    onlyNew: filter === "yeni",
-    onlyRestocked: filter === "stok",
-    brand: brand?.name,
-    page,
-    pageSize: PAGE_SIZE,
+  let brand: Awaited<ReturnType<typeof getServerBrands>>[number] | undefined;
+  let brands: Awaited<ReturnType<typeof getServerBrands>>;
+
+  if (brandSlug) {
+    brands = await brandsPromise;
+    brand = brands.find((b) => b.slug === brandSlug);
+    const list = await getServerProductList({
+      search: query || undefined,
+      onlyNew: filter === "yeni",
+      onlyRestocked: filter === "stok",
+      brand: brand?.name,
+      page,
+      pageSize: PAGE_SIZE,
+    });
+    return renderProductsPage({
+      title: buildTitle(query, filter, brand),
+      list,
+      brands,
+      query,
+      filter,
+      brandSlug,
+    });
+  }
+
+  const [brandsResult, list] = await Promise.all([
+    brandsPromise,
+    getServerProductList({
+      search: query || undefined,
+      onlyNew: filter === "yeni",
+      onlyRestocked: filter === "stok",
+      page,
+      pageSize: PAGE_SIZE,
+    }),
+  ]);
+  brands = brandsResult;
+
+  return renderProductsPage({
+    title: buildTitle(query, filter, brand),
+    list,
+    brands,
+    query,
+    filter,
+    brandSlug,
   });
+}
 
-  const title = query
-    ? `"${query}" için arama sonuçları`
-    : filter === "yeni"
-      ? "Yeni Ürünler"
-      : filter === "stok"
-        ? "Yeniden Stoğa Giren Ürünler"
-        : brand
-          ? brand.name
-          : "Tüm Ürünler";
+function buildTitle(
+  query: string,
+  filter: string,
+  brand?: { name: string }
+) {
+  if (query) return `"${query}" için arama sonuçları`;
+  if (filter === "yeni") return "Yeni Ürünler";
+  if (filter === "stok") return "Yeniden Stoğa Giren Ürünler";
+  if (brand) return brand.name;
+  return "Tüm Ürünler";
+}
 
+function renderProductsPage({
+  title,
+  list,
+  brands,
+  query,
+  filter,
+  brandSlug,
+}: {
+  title: string;
+  list: Awaited<ReturnType<typeof getServerProductList>>;
+  brands: Awaited<ReturnType<typeof getServerBrands>>;
+  query: string;
+  filter: string;
+  brandSlug: string;
+}) {
+  void brands;
   const from = list.total === 0 ? 0 : (list.page - 1) * list.pageSize + 1;
   const to = Math.min(list.page * list.pageSize, list.total);
 

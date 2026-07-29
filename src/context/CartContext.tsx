@@ -6,10 +6,12 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
 import { CartItem, Product } from "@/types";
+import { useAuth } from "@/context/AuthContext";
 
 interface CartContextType {
   items: CartItem[];
@@ -41,6 +43,7 @@ function toCartProduct(product: Product): Product {
     packSize: product.packSize,
     packUnit: product.packUnit,
     inStock: product.inStock !== false,
+    stockQty: product.stockQty,
     image: product.image,
     description: "",
     features: [],
@@ -74,21 +77,121 @@ function readStoredCart(): CartItem[] {
   }
 }
 
+function mergeCarts(local: CartItem[], server: CartItem[]): CartItem[] {
+  const map = new Map<string, CartItem>();
+  for (const item of server) {
+    map.set(itemKey(item.product), {
+      product: toCartProduct(item.product),
+      quantity: normalizeQty(item.quantity),
+    });
+  }
+  for (const item of local) {
+    const key = itemKey(item.product);
+    const existing = map.get(key);
+    if (existing) {
+      map.set(key, {
+        ...existing,
+        quantity: Math.max(existing.quantity, normalizeQty(item.quantity)),
+      });
+    } else {
+      map.set(key, {
+        product: toCartProduct(item.product),
+        quantity: normalizeQty(item.quantity),
+      });
+    }
+  }
+  return Array.from(map.values());
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
   const [items, setItems] = useState<CartItem[]>([]);
   const [ready, setReady] = useState(false);
+  const skipNextSync = useRef(false);
+  const syncedUserId = useRef<string | null>(null);
 
-  // 1) Önce localStorage'dan yükle
   useEffect(() => {
     setItems(readStoredCart());
     setReady(true);
   }, []);
 
-  // 2) ready olmadan ASLA localStorage'a yazma (boş sepetle üzerine yazmayı engeller)
   useEffect(() => {
     if (!ready) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, ready]);
+
+  // Girişli kullanıcı: sunucu sepeti ile birleştir ve kaydet
+  useEffect(() => {
+    if (!ready || authLoading) return;
+
+    if (!user) {
+      syncedUserId.current = null;
+      return;
+    }
+
+    if (syncedUserId.current === user.id) return;
+    syncedUserId.current = user.id;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/cart");
+        const json = await res.json();
+        if (cancelled || !json.success) return;
+        const serverItems: CartItem[] = (json.data || []).map(
+          (i: CartItem) => ({
+            product: toCartProduct(i.product),
+            quantity: normalizeQty(i.quantity),
+          })
+        );
+        const local = readStoredCart();
+        const merged = mergeCarts(local, serverItems);
+        skipNextSync.current = true;
+        setItems(merged);
+        await fetch("/api/cart", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            items: merged.map((i) => ({
+              productId: i.product.id,
+              quantity: i.quantity,
+            })),
+          }),
+        });
+      } catch {
+        // local sepet ile devam
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, ready, authLoading]);
+
+  // Değişiklikleri sunucuya yansıt
+  useEffect(() => {
+    if (!ready || !user || authLoading) return;
+    if (skipNextSync.current) {
+      skipNextSync.current = false;
+      return;
+    }
+    if (syncedUserId.current !== user.id) return;
+
+    const t = setTimeout(() => {
+      fetch("/api/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            productId: i.product.id,
+            quantity: i.quantity,
+          })),
+        }),
+      }).catch(() => undefined);
+    }, 400);
+
+    return () => clearTimeout(t);
+  }, [items, user, ready, authLoading]);
 
   const addToCart = useCallback((product: Product, quantity: unknown = 1) => {
     const qty = normalizeQty(quantity);
@@ -128,7 +231,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const clearCart = useCallback(() => setItems([]), []);
+  const clearCart = useCallback(() => {
+    setItems([]);
+    if (typeof window !== "undefined") {
+      fetch("/api/cart", { method: "DELETE" }).catch(() => undefined);
+    }
+  }, []);
 
   const isInCart = useCallback(
     (productId: string) =>

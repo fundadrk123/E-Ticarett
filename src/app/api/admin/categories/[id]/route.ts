@@ -4,6 +4,7 @@ import {
   updateCategoryPg,
   deleteCategoryPg,
 } from "@/lib/db/postgresDataService";
+import { revalidateCatalog } from "@/lib/cache";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -15,6 +16,7 @@ export async function PUT(request: NextRequest, { params }: Props) {
     const { id } = await params;
     const body = await request.json();
     const category = await updateCategoryPg(id, body);
+    revalidateCatalog();
     return NextResponse.json({ success: true, data: category });
   } catch (error) {
     console.error("Update category error:", error);
@@ -34,6 +36,7 @@ export async function DELETE(_request: NextRequest, { params }: Props) {
     await requireAuth("admin");
     const { id } = await params;
     await deleteCategoryPg(id);
+    revalidateCatalog();
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Delete category error:", error);

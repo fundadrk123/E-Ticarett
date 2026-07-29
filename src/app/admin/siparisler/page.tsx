@@ -22,15 +22,37 @@ const statusLabels: Record<string, string> = {
   cancelled: "İptal",
 };
 
+const CARGO_COMPANIES = [
+  "Yurtiçi Kargo",
+  "Aras Kargo",
+  "MNG Kargo",
+  "PTT Kargo",
+  "Sürat Kargo",
+  "Diğer",
+];
+
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cargoDraft, setCargoDraft] = useState<
+    Record<string, { company: string; tracking: string }>
+  >({});
 
   const load = () => {
     fetch("/api/admin/orders")
       .then((r) => r.json())
       .then((json) => {
-        if (json.success) setOrders(json.data);
+        if (json.success) {
+          setOrders(json.data);
+          const draft: Record<string, { company: string; tracking: string }> = {};
+          for (const o of json.data as Order[]) {
+            draft[o.id] = {
+              company: o.cargoCompany || "",
+              tracking: o.trackingNumber || "",
+            };
+          }
+          setCargoDraft(draft);
+        }
         setLoading(false);
       });
   };
@@ -53,6 +75,30 @@ export default function AdminOrdersPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ paymentStatus: "paid", status: "confirmed" }),
+    });
+    load();
+  };
+
+  const saveCargo = async (id: string) => {
+    const d = cargoDraft[id] || { company: "", tracking: "" };
+    await fetch(`/api/admin/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: "shipped",
+        cargoCompany: d.company || null,
+        trackingNumber: d.tracking || null,
+      }),
+    });
+    load();
+  };
+
+  const refund = async (id: string) => {
+    if (!confirm("Sipariş iade edilsin mi? Stok geri eklenecek.")) return;
+    await fetch(`/api/admin/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "refund" }),
     });
     load();
   };
@@ -80,6 +126,13 @@ export default function AdminOrdersPage() {
                   </p>
                   <p className="mt-1 font-semibold text-primary-600">
                     {formatPrice(order.totalIncVat)}
+                    {order.discountAmount > 0
+                      ? ` (indirim ${formatPrice(order.discountAmount)})`
+                      : ""}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Ödeme: {order.paymentStatus}
+                    {order.couponCode ? ` · Kupon: ${order.couponCode}` : ""}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -96,16 +149,70 @@ export default function AdminOrdersPage() {
                       </option>
                     ))}
                   </select>
-                  {order.paymentStatus !== "paid" && (
+                  {order.paymentStatus !== "paid" &&
+                    order.paymentStatus !== "refunded" && (
+                      <button
+                        onClick={() => markPaid(order.id)}
+                        className="btn-primary !py-2 text-xs"
+                      >
+                        Ödendi İşaretle
+                      </button>
+                    )}
+                  {order.paymentStatus !== "refunded" && (
                     <button
-                      onClick={() => markPaid(order.id)}
-                      className="btn-primary !py-2 text-xs"
+                      onClick={() => refund(order.id)}
+                      className="btn-outline !py-2 text-xs text-red-600"
                     >
-                      Ödendi İşaretle
+                      İade Et
                     </button>
                   )}
                 </div>
               </div>
+
+              <div className="mt-4 grid gap-2 rounded-lg border border-slate-100 bg-slate-50 p-3 sm:grid-cols-3">
+                <select
+                  value={cargoDraft[order.id]?.company || ""}
+                  onChange={(e) =>
+                    setCargoDraft((prev) => ({
+                      ...prev,
+                      [order.id]: {
+                        company: e.target.value,
+                        tracking: prev[order.id]?.tracking || "",
+                      },
+                    }))
+                  }
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                >
+                  <option value="">Kargo firması</option>
+                  {CARGO_COMPANIES.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  value={cargoDraft[order.id]?.tracking || ""}
+                  onChange={(e) =>
+                    setCargoDraft((prev) => ({
+                      ...prev,
+                      [order.id]: {
+                        company: prev[order.id]?.company || "",
+                        tracking: e.target.value,
+                      },
+                    }))
+                  }
+                  placeholder="Takip numarası"
+                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => saveCargo(order.id)}
+                  className="btn-outline !py-2 text-sm"
+                >
+                  Kargoya Ver / Kaydet
+                </button>
+              </div>
+
               {order.items && (
                 <div className="mt-3 border-t border-slate-100 pt-3 text-sm text-slate-600">
                   {order.items.map((item) => (

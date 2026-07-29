@@ -4,6 +4,7 @@ import {
   getAllProductsPg,
   createProductPg,
 } from "@/lib/db/postgresDataService";
+import { revalidateCatalog } from "@/lib/cache";
 
 export async function GET() {
   try {
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
     await requireAuth("admin");
     const body = await request.json();
     const product = await createProductPg(body);
+    revalidateCatalog();
     return NextResponse.json({ success: true, data: product }, { status: 201 });
   } catch (error) {
     console.error("Create product error:", error);

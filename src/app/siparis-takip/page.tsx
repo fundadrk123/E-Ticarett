@@ -139,6 +139,22 @@ export default function OrderTrackingPage() {
                     {formatPrice(order.totalIncVat)}
                   </p>
                 </div>
+                {(order.cargoCompany || order.trackingNumber) && (
+                  <>
+                    <div>
+                      <p className="text-xs text-slate-500">Kargo</p>
+                      <p className="font-semibold">
+                        {order.cargoCompany || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Takip No</p>
+                      <p className="font-semibold">
+                        {order.trackingNumber || "—"}
+                      </p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {order.items && order.items.length > 0 && (

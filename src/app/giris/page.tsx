@@ -159,6 +159,16 @@ function LoginForm() {
                   )}
                 </button>
               </div>
+              {isLogin && (
+                <div className="mt-2 text-right">
+                  <Link
+                    href="/sifremi-unuttum"
+                    className="text-xs font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    Şifremi unuttum
+                  </Link>
+                </div>
+              )}
             </div>
 
             <button

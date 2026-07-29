@@ -3,25 +3,32 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Plus, Pencil, Trash2, Upload, Package } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatPriceAmount, formatPriceInputTyping, parsePriceInput } from "@/lib/utils";
 import type { Category, Product } from "@/types";
 
 const emptyProduct: Partial<Product> = {
   sku: "",
   name: "",
   slug: "",
-  brand: "Kupa Tools",
+  brand: "",
   categoryId: "1",
-  priceExVat: 0,
-  priceIncVat: 0,
+  priceExVat: undefined,
+  priceIncVat: undefined,
   unit: "ADET",
   inStock: true,
+  stockQty: undefined,
   isNew: false,
   isRestocked: false,
   image: "",
   description: "",
   features: [],
 };
+
+/** Sayı input: 0 / boş → ekranda boş; odaklanınca 0 silinir */
+function numberInputValue(value: number | undefined | null): string | number {
+  if (value === undefined || value === null || Number.isNaN(value)) return "";
+  return value;
+}
 
 function toSlug(name: string) {
   return name
@@ -40,6 +47,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editing, setEditing] = useState<Partial<Product> | null>(null);
+  const [priceText, setPriceText] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -108,6 +116,14 @@ export default function AdminProductsPage() {
       alert("SKU ve ürün adı zorunludur.");
       return;
     }
+    if (!editing.brand?.trim()) {
+      alert("Marka adı zorunludur.");
+      return;
+    }
+    if (!editing.image?.trim()) {
+      alert("Ürün görseli zorunludur. Lütfen görsel yükleyin veya URL girin.");
+      return;
+    }
     if (!editing.categoryId) {
       alert("Kategori seçiniz.");
       return;
@@ -115,15 +131,21 @@ export default function AdminProductsPage() {
     setSaving(true);
     const price = Number(editing.priceExVat) || 0;
     const priceInc = Math.round(price * 1.2 * 100) / 100;
+    const stockQty =
+      editing.stockQty !== undefined && editing.stockQty !== null
+        ? Math.max(0, Math.floor(Number(editing.stockQty)))
+        : 0;
     const payload = {
       ...emptyProduct,
       ...editing,
+      brand: editing.brand.trim(),
       slug: editing.slug || toSlug(`${editing.sku}-${editing.name}`),
       priceExVat: price,
       priceIncVat: priceInc,
       unit: editing.unit || "ADET",
-      inStock: editing.inStock !== false,
-      image: editing.image || "/products/kupa/page-007-main.jpg",
+      stockQty,
+      inStock: stockQty > 0,
+      image: editing.image.trim(),
       description: editing.description || editing.name || "",
       features: editing.features || [],
     };
@@ -145,24 +167,28 @@ export default function AdminProductsPage() {
       return;
     }
     setEditing(null);
+    setPriceText("");
     load();
   };
 
-  const toggleStock = async (product: Product) => {
-    const next = !product.inStock;
-    setProducts((prev) =>
-      prev.map((p) => (p.id === product.id ? { ...p, inStock: next } : p))
+  const openEdit = async (product: Product) => {
+    setEditing({ ...product });
+    setPriceText(
+      product.priceExVat != null ? formatPriceAmount(product.priceExVat) : ""
     );
-    const res = await fetch(`/api/admin/products/${product.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...product, inStock: next }),
-    });
-    const json = await res.json();
-    if (!json.success) {
-      alert(json.message || "Stok güncellenemedi.");
-      load();
-      return;
+    try {
+      const res = await fetch(`/api/admin/products/${product.id}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setEditing(json.data);
+        setPriceText(
+          json.data.priceExVat != null
+            ? formatPriceAmount(json.data.priceExVat)
+            : ""
+        );
+      }
+    } catch {
+      // liste verisiyle devam
     }
   };
 
@@ -182,12 +208,13 @@ export default function AdminProductsPage() {
           </p>
         </div>
         <button
-          onClick={() =>
+          onClick={() => {
             setEditing({
               ...emptyProduct,
               categoryId: categories[0]?.id || "",
-            })
-          }
+            });
+            setPriceText("");
+          }}
           className="btn-primary flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
@@ -295,7 +322,7 @@ export default function AdminProductsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">
-                  Marka
+                  Marka *
                 </label>
                 <input
                   placeholder="Örn: Kupa Tools"
@@ -358,18 +385,29 @@ export default function AdminProductsPage() {
                   Fiyat (KDV hariç, TL)
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={editing.priceExVat ?? ""}
-                  onChange={(e) =>
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="Örn: 1.250,50"
+                  value={priceText}
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const display = formatPriceInputTyping(e.target.value);
+                    setPriceText(display);
                     setEditing({
-                      ...editing,
-                      priceExVat: Number(e.target.value),
-                    })
-                  }
+                      ...editing!,
+                      priceExVat: parsePriceInput(display),
+                    });
+                  }}
+                  onBlur={() => {
+                    if (editing?.priceExVat != null) {
+                      setPriceText(formatPriceAmount(editing.priceExVat));
+                    }
+                  }}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Binlik ayırıcı nokta (.), ondalık virgül (,)
+                </p>
               </div>
               <div>
                 <label className="mb-1 block text-xs font-semibold text-slate-600">
@@ -387,17 +425,50 @@ export default function AdminProductsPage() {
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
                   Stok ve etiketler
                 </p>
+                <div className="mb-3">
+                  <label className="mb-1 block text-xs font-semibold text-slate-600">
+                    Stok adedi
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder="Örn: 100"
+                    value={numberInputValue(editing.stockQty)}
+                    onFocus={(e) => {
+                      if (!editing.stockQty) {
+                        setEditing({ ...editing, stockQty: undefined });
+                      }
+                      e.target.select();
+                    }}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === "") {
+                        setEditing({
+                          ...editing,
+                          stockQty: undefined,
+                          inStock: false,
+                        });
+                        return;
+                      }
+                      const stockQty = Math.max(0, Math.floor(Number(raw) || 0));
+                      setEditing({
+                        ...editing,
+                        stockQty,
+                        inStock: stockQty > 0,
+                      });
+                    }}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm sm:max-w-xs"
+                  />
+                </div>
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
+                  <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-600">
                     <input
                       type="checkbox"
-                      checked={editing.inStock !== false}
-                      onChange={(e) =>
-                        setEditing({ ...editing, inStock: e.target.checked })
-                      }
+                      checked={(editing.stockQty ?? 0) > 0}
+                      disabled
                       className="h-4 w-4"
                     />
-                    Stokta var
+                    Stokta {(editing.stockQty ?? 0) > 0 ? "var" : "yok"}
                   </label>
                   <label className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm">
                     <input
@@ -447,7 +518,13 @@ export default function AdminProductsPage() {
             <button onClick={save} disabled={saving} className="btn-primary">
               {saving ? "Kaydediliyor..." : "Kaydet"}
             </button>
-            <button onClick={() => setEditing(null)} className="btn-outline">
+            <button
+              onClick={() => {
+                setEditing(null);
+                setPriceText("");
+              }}
+              className="btn-outline"
+            >
               İptal
             </button>
           </div>
@@ -493,22 +570,23 @@ export default function AdminProductsPage() {
                     {formatPrice(product.priceIncVat)}
                   </td>
                   <td className="px-3 py-3">
-                    <button
-                      onClick={() => toggleStock(product)}
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        product.inStock
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-red-100 text-red-600 hover:bg-red-200"
+                    <span
+                      className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        (product.stockQty ?? 0) > 0
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-600"
                       }`}
-                      title="Stok durumunu değiştir"
+                      title="Stok adedini değiştirmek için düzenle"
                     >
-                      {product.inStock ? "Stokta" : "Yok"}
-                    </button>
+                      {(product.stockQty ?? 0) > 0
+                        ? `Stokta (${product.stockQty})`
+                        : "Yok (0)"}
+                    </span>
                   </td>
                   <td className="px-3 py-3">
                     <div className="flex gap-1">
                       <button
-                        onClick={() => setEditing(product)}
+                        onClick={() => openEdit(product)}
                         className="rounded p-1.5 text-primary-600 hover:bg-primary-50"
                         title="Düzenle"
                       >

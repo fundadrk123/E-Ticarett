@@ -27,6 +27,8 @@ export interface Product {
   packSize?: number;
   packUnit?: string;
   inStock: boolean;
+  /** Stok adedi; yoksa inStock boolean'ından türetilir */
+  stockQty?: number;
   isNew?: boolean;
   isRestocked?: boolean;
   image: string;
@@ -82,6 +84,35 @@ export interface ShippingAddress {
   postalCode?: string;
 }
 
+export interface SavedAddress {
+  id: string;
+  userId: string;
+  label: string;
+  fullName: string;
+  phone: string;
+  addressLine: string;
+  city: string;
+  district: string;
+  postalCode?: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export type CouponType = "percent" | "fixed";
+
+export interface Coupon {
+  id: string;
+  code: string;
+  type: CouponType;
+  value: number;
+  minOrderIncVat: number;
+  maxUses: number | null;
+  usedCount: number;
+  active: boolean;
+  expiresAt?: string;
+  createdAt: string;
+}
+
 export interface OrderItem {
   id: string;
   orderId: string;
@@ -105,8 +136,14 @@ export interface Order {
   paymentMethod: PaymentMethod;
   totalExVat: number;
   totalIncVat: number;
+  discountAmount: number;
+  couponCode?: string;
   shippingAddress: ShippingAddress;
   notes?: string;
+  trackingNumber?: string;
+  cargoCompany?: string;
+  paymentId?: string;
+  guestToken?: string;
   createdAt: string;
   updatedAt: string;
   items?: OrderItem[];
@@ -118,6 +155,12 @@ export interface AdminStats {
   pendingOrders: number;
   totalUsers: number;
   totalRevenue: number;
+  /** Stokta olan ürün sayısı (stock_qty > 0) */
+  productsInStock: number;
+  /** Stoğu bitmiş ürün sayısı */
+  productsOutOfStock: number;
+  /** Tüm ürünlerdeki toplam stok adedi */
+  totalStockQty: number;
 }
 
 export interface CreateOrderPayload {
@@ -128,4 +171,15 @@ export interface CreateOrderPayload {
   shippingAddress: ShippingAddress;
   paymentMethod: PaymentMethod;
   notes?: string;
+  couponCode?: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  createdAt: string;
 }

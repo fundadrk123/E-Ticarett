@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogIn, UserPlus, ShoppingBag, Lock } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { formatPrice } from "@/lib/utils";
-import type { PaymentMethod } from "@/types";
+import type { PaymentMethod, SavedAddress } from "@/types";
 import { AddressLocationFields } from "@/components/checkout/AddressLocationFields";
 
 export default function CheckoutPage() {
@@ -17,6 +17,11 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("bank_transfer");
+  const [couponCode, setCouponCode] = useState("");
+  const [discount, setDiscount] = useState(0);
+  const [couponMsg, setCouponMsg] = useState("");
+  const [addresses, setAddresses] = useState<SavedAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
   const [form, setForm] = useState({
     customerName: "",
     email: "",
@@ -36,7 +41,48 @@ export default function CheckoutPage() {
       email: prev.email || user.email || "",
       phone: prev.phone || user.phone || "",
     }));
+    fetch("/api/account/addresses")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) {
+          setAddresses(json.data || []);
+          const def = (json.data || []).find((a: SavedAddress) => a.isDefault);
+          if (def) applyAddress(def);
+        }
+      })
+      .catch(() => undefined);
   }, [user]);
+
+  const applyAddress = (addr: SavedAddress) => {
+    setSelectedAddressId(addr.id);
+    setForm((prev) => ({
+      ...prev,
+      customerName: addr.fullName,
+      phone: addr.phone,
+      addressLine: addr.addressLine,
+      city: addr.city,
+      district: addr.district,
+      postalCode: addr.postalCode || "",
+    }));
+  };
+
+  const applyCoupon = async () => {
+    setCouponMsg("");
+    setDiscount(0);
+    if (!couponCode.trim()) return;
+    const res = await fetch("/api/coupons/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: couponCode.trim(), orderIncVat: totalIncVat }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setDiscount(Number(json.data.discount) || 0);
+      setCouponMsg(`Kupon uygulandı: −${formatPrice(json.data.discount)}`);
+    } else {
+      setCouponMsg(json.message || "Kupon geçersiz.");
+    }
+  };
 
   if (!ready || authLoading) {
     return (
@@ -57,81 +103,7 @@ export default function CheckoutPage() {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="container-site py-10 lg:py-16">
-        <div className="mx-auto max-w-xl">
-          <div className="card p-8 text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-50 text-primary-600">
-              <Lock className="h-7 w-7" />
-            </div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              Siparişi tamamlamak için giriş yapın
-            </h1>
-            <p className="mt-2 text-sm leading-relaxed text-slate-500">
-              Siparişinizi güvenle takip edebilmeniz için hesabınızla devam
-              etmeniz gerekiyor. Hesabınız yoksa hemen ücretsiz kayıt olabilirsiniz.
-            </p>
-
-            <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left">
-              <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <ShoppingBag className="h-4 w-4 text-primary-600" />
-                Sepet özeti
-              </div>
-              <div className="space-y-1.5">
-                {items.slice(0, 4).map(({ product, quantity }) => (
-                  <div
-                    key={product.id}
-                    className="flex justify-between gap-3 text-sm text-slate-600"
-                  >
-                    <span className="line-clamp-1">
-                      {product.name} ×{quantity}
-                    </span>
-                    <span className="shrink-0 font-medium">
-                      {formatPrice(product.priceIncVat * quantity)}
-                    </span>
-                  </div>
-                ))}
-                {items.length > 4 && (
-                  <p className="text-xs text-slate-400">
-                    +{items.length - 4} ürün daha
-                  </p>
-                )}
-              </div>
-              <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-sm font-bold text-slate-800">
-                <span>Toplam</span>
-                <span className="text-primary-600">{formatPrice(totalIncVat)}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              <Link
-                href="/giris?redirect=/odeme"
-                className="btn-primary inline-flex items-center justify-center gap-2 !py-3"
-              >
-                <LogIn className="h-4 w-4" />
-                Giriş Yap
-              </Link>
-              <Link
-                href="/giris?mode=register&redirect=/odeme"
-                className="btn-outline inline-flex items-center justify-center gap-2 !py-3"
-              >
-                <UserPlus className="h-4 w-4" />
-                Kayıt Ol
-              </Link>
-            </div>
-
-            <Link
-              href="/sepet"
-              className="mt-4 inline-block text-sm font-medium text-primary-600 hover:text-primary-700"
-            >
-              Sepete dön
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const payable = Math.max(0, totalIncVat - discount);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +124,7 @@ export default function CheckoutPage() {
           phone: form.phone,
           paymentMethod,
           notes: form.notes || undefined,
+          couponCode: couponCode.trim() || undefined,
           shippingAddress: {
             fullName: form.customerName,
             phone: form.phone,
@@ -176,12 +149,11 @@ export default function CheckoutPage() {
         const payRes = await fetch("/api/payment/initiate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: order.id }),
+          body: JSON.stringify({ orderId: order.id, email: form.email }),
         });
         const payJson = await payRes.json();
 
         if (payJson.success && payJson.data.checkoutFormContent) {
-          // Sepeti burada temizleme — ödeme başarılı callback'te / basarili sayfasında
           const win = window.open("", "_self");
           if (win) {
             win.document.write(payJson.data.checkoutFormContent);
@@ -199,7 +171,9 @@ export default function CheckoutPage() {
       }
 
       clearCart();
-      router.push(`/odeme/basarili?orderId=${order.id}&orderNumber=${order.orderNumber}`);
+      router.push(
+        `/odeme/basarili?orderId=${order.id}&orderNumber=${order.orderNumber}`
+      );
     } catch {
       setError("Bir hata oluştu. Lütfen tekrar deneyin.");
       setLoading(false);
@@ -212,7 +186,23 @@ export default function CheckoutPage() {
         Ödeme ve Teslimat
       </h1>
       <p className="mb-8 text-sm text-slate-500">
-        Giriş yapan hesap: <span className="font-medium text-slate-700">{user.email}</span>
+        {user ? (
+          <>
+            Giriş yapan hesap:{" "}
+            <span className="font-medium text-slate-700">{user.email}</span>
+          </>
+        ) : (
+          <>
+            Misafir olarak devam ediyorsunuz.{" "}
+            <Link
+              href="/giris?redirect=/odeme"
+              className="inline-flex items-center gap-1 font-medium text-primary-600 hover:text-primary-700"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              Giriş yap
+            </Link>
+          </>
+        )}
       </p>
 
       <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-3">
@@ -248,6 +238,32 @@ export default function CheckoutPage() {
 
           <div className="card p-6">
             <h2 className="mb-4 font-bold text-slate-800">Teslimat Adresi</h2>
+            {addresses.length > 0 && (
+              <div className="mb-4 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Kayıtlı adresler
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {addresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => applyAddress(addr)}
+                      className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                        selectedAddressId === addr.id
+                          ? "border-primary-500 bg-primary-50 text-primary-800"
+                          : "border-slate-200 hover:border-slate-300"
+                      }`}
+                    >
+                      <span className="font-medium">{addr.label}</span>
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        {addr.district} / {addr.city}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid gap-4">
               <textarea
                 required
@@ -278,7 +294,7 @@ export default function CheckoutPage() {
                 {
                   value: "bank_transfer" as const,
                   label: "Havale / EFT",
-                  desc: "Sipariş onayından sonra IBAN bilgisi gönderilir",
+                  desc: "Sipariş onayından sonra IBAN bilgisi e-posta ile gönderilir",
                 },
                 {
                   value: "cash_on_delivery" as const,
@@ -331,10 +347,39 @@ export default function CheckoutPage() {
               </div>
             ))}
           </div>
+
+          <div className="mt-4 space-y-2">
+            <div className="flex gap-2">
+              <input
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="Kupon kodu"
+                className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-primary-500"
+              />
+              <button
+                type="button"
+                onClick={applyCoupon}
+                className="btn-outline !px-3 !py-2 text-xs"
+              >
+                Uygula
+              </button>
+            </div>
+            {couponMsg && (
+              <p className="text-xs text-slate-600">{couponMsg}</p>
+            )}
+          </div>
+
+          {discount > 0 && (
+            <div className="mt-3 flex justify-between text-sm text-green-700">
+              <span>İndirim</span>
+              <span>−{formatPrice(discount)}</span>
+            </div>
+          )}
+
           <div className="mt-4 flex justify-between">
             <span className="font-bold text-slate-800">Toplam</span>
             <span className="text-xl font-bold text-primary-600">
-              {formatPrice(totalIncVat)}
+              {formatPrice(payable)}
             </span>
           </div>
 

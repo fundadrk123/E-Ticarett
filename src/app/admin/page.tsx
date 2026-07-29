@@ -11,6 +11,9 @@ import {
   FolderTree,
   ImagePlus,
   Boxes,
+  PackageCheck,
+  PackageX,
+  Warehouse,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import type { AdminStats } from "@/types";
@@ -36,6 +39,32 @@ export default function AdminDashboard() {
           label: "Toplam Gelir",
           value: formatPrice(stats.totalRevenue),
           icon: TrendingUp,
+        },
+      ]
+    : [];
+
+  const stockCards = stats
+    ? [
+        {
+          label: "Stoğu Olan Ürün",
+          value: stats.productsInStock,
+          hint: "stock_qty > 0",
+          icon: PackageCheck,
+          tone: "bg-green-50 text-green-700",
+        },
+        {
+          label: "Stoğu Bitmiş Ürün",
+          value: stats.productsOutOfStock,
+          hint: "stock_qty = 0",
+          icon: PackageX,
+          tone: "bg-red-50 text-red-700",
+        },
+        {
+          label: "Toplam Stok Adedi",
+          value: stats.totalStockQty.toLocaleString("tr-TR"),
+          hint: "Tüm ürünlerin stok toplamı",
+          icon: Warehouse,
+          tone: "bg-primary-50 text-primary-700",
         },
       ]
     : [];
@@ -86,19 +115,48 @@ export default function AdminDashboard() {
       {!stats ? (
         <p className="text-slate-500">Yükleniyor...</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {cards.map((card) => (
-            <div key={card.label} className="card flex items-center gap-4 p-5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50">
-                <card.icon className="h-6 w-6 text-primary-600" />
+        <>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Stok özeti
+          </h2>
+          <div className="mb-8 grid gap-4 sm:grid-cols-3">
+            {stockCards.map((card) => (
+              <Link
+                key={card.label}
+                href="/admin/urunler"
+                className="card flex items-center gap-4 p-5 transition hover:border-primary-300 hover:shadow-md"
+              >
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-xl ${card.tone}`}
+                >
+                  <card.icon className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">{card.label}</p>
+                  <p className="text-2xl font-bold text-slate-800">{card.value}</p>
+                  <p className="text-xs text-slate-400">{card.hint}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Genel
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {cards.map((card) => (
+              <div key={card.label} className="card flex items-center gap-4 p-5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50">
+                  <card.icon className="h-6 w-6 text-primary-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">{card.label}</p>
+                  <p className="text-2xl font-bold text-slate-800">{card.value}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-slate-500">{card.label}</p>
-                <p className="text-2xl font-bold text-slate-800">{card.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

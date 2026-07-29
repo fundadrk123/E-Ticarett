@@ -5,6 +5,8 @@ import { getServerProductBySlug, getServerCategoryById } from "@/lib/server-data
 import { formatPrice } from "@/lib/utils";
 import { ProductActions } from "@/components/products/ProductActions";
 
+export const revalidate = 60;
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
@@ -15,7 +17,9 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
 
-  const category = await getServerCategoryById(product.categoryId);
+  const category = product.categoryId
+    ? await getServerCategoryById(product.categoryId)
+    : undefined;
 
   return (
     <div className="container-site py-8 lg:py-12">
