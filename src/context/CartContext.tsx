@@ -115,6 +115,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setReady(true);
   }, []);
 
+  // Silinmiş / stoksuz ürünleri sepetten temizle (eski localStorage ID'leri)
+  useEffect(() => {
+    if (!ready) return;
+    const current = readStoredCart();
+    if (current.length === 0) return;
+
+    let cancelled = false;
+    fetch("/api/products/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: current.map((i) => i.product.id) }),
+    })
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled || !json.success) return;
+        const invalid = new Set<string>(
+          (json.data?.invalid || []).map(String)
+        );
+        const validMap = new Map<string, Product>(
+          ((json.data?.valid || []) as Product[]).map((p) => [String(p.id), p])
+        );
+
+        setItems((prev) =>
+          prev
+            .filter((i) => !invalid.has(String(i.product.id)))
+            .map((i) => {
+              const fresh = validMap.get(String(i.product.id));
+              if (!fresh) return i;
+              const stock = fresh.stockQty ?? 0;
+              if (stock <= 0) return null;
+              return {
+                product: toCartProduct(fresh),
+                quantity: Math.min(normalizeQty(i.quantity), stock),
+              };
+            })
+            .filter(Boolean) as CartItem[]
+        );
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ready]);
+
   useEffect(() => {
     if (!ready) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));

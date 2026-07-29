@@ -1123,7 +1123,9 @@ export async function validateCouponPg(code: string, orderIncVat: number) {
     throw new Error("COUPON_EXHAUSTED");
   }
   const minOrder = Number(row.min_order_inc_vat);
-  if (orderIncVat < minOrder) throw new Error("COUPON_MIN_ORDER");
+  if (orderIncVat < minOrder) {
+    throw new Error(`COUPON_MIN_ORDER:${minOrder}`);
+  }
 
   const value = Number(row.value);
   let discount =

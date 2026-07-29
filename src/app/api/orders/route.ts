@@ -17,12 +17,24 @@ function mapOrderError(message: string) {
   if (message.startsWith("OUT_OF_STOCK:")) {
     return `Stokta yok: ${message.split(":")[1]}`;
   }
+  if (message.startsWith("PRODUCT_NOT_FOUND:")) {
+    return "Sepetteki ürün artık satışta değil. Sepeti yenileyip tekrar deneyin.";
+  }
+  if (message === "INVALID_QUANTITY") return "Geçersiz ürün adedi.";
   if (message === "COUPON_INVALID") return "Kupon geçersiz.";
   if (message === "COUPON_EXPIRED") return "Kuponun süresi dolmuş.";
   if (message === "COUPON_EXHAUSTED") return "Kupon kullanım limiti dolmuş.";
   if (message === "COUPON_MIN_ORDER") return "Sipariş tutarı kupon için yetersiz.";
+  if (message.startsWith("COUPON_MIN_ORDER:")) {
+    const min = Number(message.split(":")[1] || 0);
+    return `Bu kupon için minimum sipariş tutarı ${min.toLocaleString("tr-TR")} TL (KDV dahil).`;
+  }
   if (message === "EMPTY_CART") return "Sepet boş.";
-  return "Sipariş oluşturulamadı.";
+  // Gerçek DB hatalarını gizleme — geliştirmede konsola düşer
+  if (message.includes("does not exist") || message.includes("column")) {
+    return "Veritabanı şeması eksik. Sunucuyu yeniden başlatın veya db:setup çalıştırın.";
+  }
+  return message.startsWith("Sipariş") ? message : `Sipariş oluşturulamadı: ${message}`;
 }
 
 export async function GET() {
