@@ -2,6 +2,34 @@
 
 Next.js 15 fullstack mağaza uygulaması (katalog, sepet, sipariş, ödeme, admin).
 
+![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss&logoColor=white)
+![Demo](https://img.shields.io/badge/demo-yakında-orange)
+
+**Teknik dokümantasyon:** [DOCUMENTATION.md](DOCUMENTATION.md) — mimari, API referansı, veritabanı şeması, kurulum ve deployment.
+
+**LinkedIn paylaşım paketi:** [docs/linkedin/](docs/linkedin/) — carousel görselleri, paylaşım metni, deploy rehberi.
+
+## Önizleme
+
+| Ana Sayfa | Ürün Kataloğu | Ürün Detay |
+|-----------|---------------|------------|
+| ![Ana sayfa](docs/linkedin/screenshots/01-home.png) | ![Ürünler](docs/linkedin/screenshots/02-urunler.png) | ![Detay](docs/linkedin/screenshots/03-urun-detay.png) |
+
+## Tech Stack
+
+| Katman | Teknoloji |
+|--------|-----------|
+| Framework | Next.js 15 (App Router), React 19, TypeScript |
+| Stil | Tailwind CSS v4 |
+| Veritabanı | PostgreSQL 16 |
+| Auth | JWT (jose) + bcrypt |
+| Ödeme | iyzico, havale, kapıda ödeme |
+| E-posta | Nodemailer |
+
 ## Gereksinimler
 
 - Node.js 20+
@@ -43,6 +71,10 @@ Sağlık: [http://localhost:3000/api/health](http://localhost:3000/api/health)
 
 Varsayılan admin: `ADMIN_EMAIL` / `ADMIN_PASSWORD` (`.env.local`).
 
+## Canlı Demo (Deploy)
+
+Vercel + Neon PostgreSQL ile ücretsiz deploy rehberi: [docs/linkedin/DEPLOY.md](docs/linkedin/DEPLOY.md)
+
 ## Özellikler
 
 - Ürün / kategori / marka kataloğu
@@ -74,10 +106,12 @@ npm run kupa:import      # Kupa katalog import
 npm run db:locations     # Türkiye il/ilçe verisi
 npm run db:docker:up     # Sadece Postgres container
 npm run build            # Production build
+python scripts/build_linkedin_carousel.py   # LinkedIn carousel slaytları
+python scripts/take-linkedin-screenshots.mjs  # Ekran görüntüsü (Playwright gerekir)
 ```
 
 ## Notlar
 
-- Eski JSON mağaza katmanı (`data/shop.json`, `src/lib/store.ts`) runtime’da kullanılmaz; asıl kaynak PostgreSQL’dir.
-- Canlı kargo firması API’si yoktur; admin siparişe takip numarası yazar.
-- Production’da `JWT_SECRET`, admin şifresi, SMTP ve (gerekirse) iyzico key’lerini mutlaka doldurun.
+- Eski JSON mağaza katmanı (`data/shop.json`, `src/lib/store.ts`) runtime'da kullanılmaz; asıl kaynak PostgreSQL'dir.
+- Canlı kargo firması API'si yoktur; admin siparişe takip numarası yazar.
+- Production'da `JWT_SECRET`, admin şifresi, SMTP ve (gerekirse) iyzico key'lerini mutlaka doldurun.
