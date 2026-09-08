@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { SiteShell } from "@/components/layout/SiteShell";
+import { Providers } from "@/components/layout/Providers";
+import { StorefrontLayout } from "@/components/layout/StorefrontLayout";
+import { AdminOrStorefront } from "@/components/layout/AdminOrStorefront";
 import { siteConfig } from "@/data/site";
 
 const inter = Inter({ subsets: ["latin"], display: "swap" });
@@ -23,7 +25,11 @@ export default function RootLayout({
   return (
     <html lang="tr" data-scroll-behavior="smooth">
       <body className={`${inter.className} flex min-h-screen flex-col`}>
-        <SiteShell>{children}</SiteShell>
+        <Providers>
+          <AdminOrStorefront storefront={<StorefrontLayout>{children}</StorefrontLayout>}>
+            {children}
+          </AdminOrStorefront>
+        </Providers>
       </body>
     </html>
   );

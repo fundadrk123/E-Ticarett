@@ -1,3 +1,7 @@
+/**
+ * Legacy JSON shop database — seed/migration scripts only.
+ * Runtime App Router code must use PostgreSQL via postgresDataService / server-data.
+ */
 import fs from "fs";
 import path from "path";
 import type { Category, Product, Brand } from "@/types";
@@ -72,5 +76,3 @@ export function getDb(): ShopDatabase {
 export function seedIfNeeded() {
   initSeed();
 }
-
-seedIfNeeded();

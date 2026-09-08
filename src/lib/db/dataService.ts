@@ -1,7 +1,10 @@
+/**
+ * Legacy JSON shop database accessors — seed/migration tooling only.
+ * Do not import from App Router pages, components, or API routes.
+ * Runtime catalog data: @/lib/server-data → postgresDataService.
+ */
 import { getDb } from "./index";
 import type { Category, Product, Brand } from "@/types";
-
-const db = getDb();
 
 function parseFeatures(raw: string | string[] | undefined): string[] {
   if (Array.isArray(raw)) return raw;
@@ -14,30 +17,34 @@ function serializeFeatures(features: string[]): string {
 }
 
 export function getAllCategories(): Category[] {
-  return db.categories.slice().sort((a, b) => a.name.localeCompare(b.name));
+  return getDb()
+    .categories.slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getCategoryBySlugDb(slug: string): Category | undefined {
-  return db.categories.find((category) => category.slug === slug);
+  return getDb().categories.find((category) => category.slug === slug);
 }
 
 export function getCategoryByIdDb(id: string): Category | undefined {
-  return db.categories.find((category) => category.id === id);
+  return getDb().categories.find((category) => category.id === id);
 }
 
 export function getAllBrands(): Brand[] {
-  return db.brands.slice().sort((a, b) => a.name.localeCompare(b.name));
+  return getDb()
+    .brands.slice()
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function getAllProducts(): Product[] {
-  return db.products.map((product) => ({
+  return getDb().products.map((product) => ({
     ...product,
     features: parseFeatures(product.features as unknown as string),
   }));
 }
 
 export function getProductBySlugDb(slug: string): Product | undefined {
-  const product = db.products.find((item) => item.slug === slug);
+  const product = getDb().products.find((item) => item.slug === slug);
   if (!product) return undefined;
 
   return {
@@ -47,8 +54,8 @@ export function getProductBySlugDb(slug: string): Product | undefined {
 }
 
 export function getProductsByCategoryDb(categoryId: string): Product[] {
-  return db.products
-    .filter((product) => product.categoryId === categoryId)
+  return getDb()
+    .products.filter((product) => product.categoryId === categoryId)
     .map((product) => ({
       ...product,
       features: parseFeatures(product.features as unknown as string),
@@ -76,6 +83,7 @@ export function searchProductsDb(query: string): Product[] {
   });
 }
 
+/** One-off: populate empty shop.json products from src/data/products.ts */
 export function seedProductsFromStaticData() {
   const currentDb = getDb();
   if (currentDb.products.length > 0) return;
@@ -95,9 +103,3 @@ export function seedProductsFromStaticData() {
   const filePath = path.join(process.cwd(), "data", "shop.json");
   fs.writeFileSync(filePath, JSON.stringify(nextDb, null, 2), "utf8");
 }
-
-export function initializeDatabase() {
-  seedProductsFromStaticData();
-}
-
-initializeDatabase();

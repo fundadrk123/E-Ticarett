@@ -226,9 +226,6 @@ export async function initPostgresSchema() {
     CREATE INDEX IF NOT EXISTS idx_cart_user ON cart_items(user_id);
     CREATE INDEX IF NOT EXISTS idx_coupons_code ON coupons(code);
     CREATE INDEX IF NOT EXISTS idx_reset_token ON password_reset_tokens(token_hash);
-    CREATE INDEX IF NOT EXISTS idx_products_in_stock ON products(stock_qty) WHERE stock_qty > 0;
-    CREATE INDEX IF NOT EXISTS idx_products_is_new ON products(is_new) WHERE is_new = true;
-    CREATE INDEX IF NOT EXISTS idx_products_is_restocked ON products(is_restocked) WHERE is_restocked = true;
 
     CREATE TABLE IF NOT EXISTS schema_meta (
       key TEXT PRIMARY KEY,
@@ -246,6 +243,12 @@ export async function initPostgresSchema() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS cargo_company TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_id TEXT;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS guest_token TEXT;
+  `);
+
+  await query(`
+    CREATE INDEX IF NOT EXISTS idx_products_in_stock ON products(stock_qty) WHERE stock_qty > 0;
+    CREATE INDEX IF NOT EXISTS idx_products_is_new ON products(is_new) WHERE is_new = true;
+    CREATE INDEX IF NOT EXISTS idx_products_is_restocked ON products(is_restocked) WHERE is_restocked = true;
   `);
 
   // Stok backfill sadece bir kez (her boot'ta full-table UPDATE yapma)

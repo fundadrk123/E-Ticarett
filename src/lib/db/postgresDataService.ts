@@ -256,12 +256,36 @@ export async function getCategoryBySlugPg(slug: string) {
 
 export async function getCategoryByIdPg(id: string) {
   await ensureDb();
-  const row = await queryOne<{ slug: string }>(
-    "SELECT slug FROM categories WHERE id = $1",
+  const row = await queryOne<{
+    id: string;
+    name: string;
+    slug: string;
+    icon: string;
+    product_count: number;
+    image: string | null;
+    description: string | null;
+  }>(
+    `SELECT c.id, c.name, c.slug, c.icon, c.image, c.description,
+            COALESCE(pc.cnt, 0)::int AS product_count
+     FROM categories c
+     LEFT JOIN (
+       SELECT category_id, COUNT(*)::int AS cnt
+       FROM products
+       GROUP BY category_id
+     ) pc ON pc.category_id = c.id
+     WHERE c.id = $1`,
     [id]
   );
   if (!row) return undefined;
-  return getCategoryBySlugPg(row.slug);
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    icon: row.icon,
+    productCount: Number(row.product_count),
+    image: row.image || undefined,
+    description: row.description || undefined,
+  } satisfies Category;
 }
 
 export async function getAllBrandsPg(): Promise<Brand[]> {
@@ -290,9 +314,109 @@ export async function getAllProductsPg(): Promise<Product[]> {
   return rows.map(mapProduct);
 }
 
+export type ProductSort =
+  | "name-asc"
+  | "name-desc"
+  | "price-asc"
+  | "price-desc"
+  | "newest";
+
+const PRODUCT_SORT_SQL: Record<ProductSort, string> = {
+  "name-asc": "name ASC",
+  "name-desc": "name DESC",
+  "price-asc": "price_inc_vat ASC, name ASC",
+  "price-desc": "price_inc_vat DESC, name ASC",
+  newest: "is_new DESC, name ASC",
+};
+
+const PRODUCT_LIST_SELECT = `id, sku, name, slug, brand, category_id, price_ex_vat, price_inc_vat, unit,
+            pack_size, pack_unit, in_stock, COALESCE(stock_qty, 0) AS stock_qty, is_new, is_restocked, image,
+            '' AS description, '' AS features`;
+
+const DEFAULT_LIST_LIMIT = 24;
+const MAX_LIST_LIMIT = 100;
+
+/** LIKE/ILIKE wildcard karakterlerini literal aramaya çevirir */
+function escapeLikePattern(raw: string): string {
+  return raw.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+}
+
+function normalizeListLimit(limit?: number): number {
+  const n = Math.floor(Number(limit ?? DEFAULT_LIST_LIMIT));
+  if (!Number.isFinite(n) || n <= 0) return DEFAULT_LIST_LIMIT;
+  return Math.min(n, MAX_LIST_LIMIT);
+}
+
+function normalizeListPage(page?: number): number {
+  const n = Math.floor(Number(page ?? 1));
+  if (!Number.isFinite(n) || n <= 0) return 1;
+  return n;
+}
+
+function resolveSort(sort?: string): ProductSort {
+  if (sort && sort in PRODUCT_SORT_SQL) return sort as ProductSort;
+  return "name-asc";
+}
+
+type ProductListWhere = {
+  whereSql: string;
+  params: unknown[];
+};
+
+function buildProductListWhere(filters: ProductListFilters): ProductListWhere {
+  const where: string[] = [];
+  const params: unknown[] = [];
+
+  if (filters.categoryId) {
+    params.push(filters.categoryId);
+    where.push(`category_id = $${params.length}`);
+  } else if (filters.categorySlug?.trim()) {
+    const slug = filters.categorySlug.trim();
+    params.push(slug);
+    const i = params.length;
+    where.push(
+      `(category_id = $${i} OR category_id IN (SELECT id FROM categories WHERE slug = $${i}))`
+    );
+  }
+
+  if (filters.brand?.trim()) {
+    params.push(filters.brand.trim());
+    where.push(`LOWER(brand) = LOWER($${params.length})`);
+  } else if (filters.brandSlug?.trim()) {
+    const slug = filters.brandSlug.trim();
+    params.push(slug);
+    const i = params.length;
+    where.push(
+      `(LOWER(brand) = LOWER($${i}) OR brand IN (SELECT name FROM brands WHERE slug = $${i}))`
+    );
+  }
+
+  const search = filters.search?.trim();
+  if (search) {
+    const pattern = `%${escapeLikePattern(search.toLowerCase())}%`;
+    params.push(pattern);
+    const i = params.length;
+    where.push(
+      `(LOWER(name) LIKE $${i} ESCAPE '\\' OR LOWER(brand) LIKE $${i} ESCAPE '\\' OR LOWER(sku) LIKE $${i} ESCAPE '\\')`
+    );
+  }
+
+  if (filters.onlyNew) where.push("is_new = true");
+  if (filters.onlyRestocked) where.push("is_restocked = true");
+  if (filters.onlyInStock) where.push("stock_qty > 0");
+
+  return {
+    whereSql: where.length ? `WHERE ${where.join(" AND ")}` : "",
+    params,
+  };
+}
+
 export type ProductListFilters = {
   categoryId?: string;
+  /** Kategori slug veya id (slug öncelikli değil; categoryId varsa yok sayılır) */
+  categorySlug?: string;
   brand?: string;
+  brandSlug?: string;
   search?: string;
   onlyNew?: boolean;
   onlyRestocked?: boolean;
@@ -300,6 +424,7 @@ export type ProductListFilters = {
   page?: number;
   pageSize?: number;
   limit?: number;
+  sort?: ProductSort | string;
   /** true ise COUNT(*) atlanır (ana sayfa widget'ları için) */
   skipCount?: boolean;
 };
@@ -317,32 +442,12 @@ export async function listProductsPg(
 ): Promise<ProductListResult> {
   await ensureDb();
 
-  const pageSize = Math.max(1, filters.limit ?? filters.pageSize ?? 24);
-  const rawPage = Math.max(1, filters.page ?? 1);
+  const pageSize = normalizeListLimit(filters.limit ?? filters.pageSize);
+  const rawPage = normalizeListPage(filters.page);
+  const sortKey = resolveSort(filters.sort);
+  const orderBy = PRODUCT_SORT_SQL[sortKey];
 
-  const where: string[] = [];
-  const params: unknown[] = [];
-
-  if (filters.categoryId) {
-    params.push(filters.categoryId);
-    where.push(`category_id = $${params.length}`);
-  }
-  if (filters.brand) {
-    params.push(filters.brand);
-    where.push(`LOWER(brand) = LOWER($${params.length})`);
-  }
-  if (filters.search?.trim()) {
-    params.push(`%${filters.search.trim().toLowerCase()}%`);
-    const i = params.length;
-    where.push(
-      `(LOWER(name) LIKE $${i} OR LOWER(brand) LIKE $${i} OR LOWER(sku) LIKE $${i})`
-    );
-  }
-  if (filters.onlyNew) where.push("is_new = true");
-  if (filters.onlyRestocked) where.push("is_restocked = true");
-  if (filters.onlyInStock) where.push("stock_qty > 0");
-
-  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+  const { whereSql, params } = buildProductListWhere(filters);
 
   let total: number;
   let totalPages: number;
@@ -367,13 +472,10 @@ export async function listProductsPg(
 
   const limitIdx = params.length + 1;
   const offsetIdx = params.length + 2;
-  // Liste için hafif kolonlar — description/features çekilmez
   const rows = await query<ProductRow>(
-    `SELECT id, sku, name, slug, brand, category_id, price_ex_vat, price_inc_vat, unit,
-            pack_size, pack_unit, in_stock, COALESCE(stock_qty, 0) AS stock_qty, is_new, is_restocked, image,
-            '' AS description, '' AS features
+    `SELECT ${PRODUCT_LIST_SELECT}
      FROM products ${whereSql}
-     ORDER BY name ASC
+     ORDER BY ${orderBy}
      LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
     [...params, pageSize, offset]
   );
@@ -419,11 +521,14 @@ export async function getProductByIdPg(id: string) {
   return row ? mapProduct(row) : undefined;
 }
 
-export async function getProductsByCategoryPg(categoryId: string) {
+export async function getProductsByCategoryPg(
+  categoryId: string,
+  options: { page?: number; pageSize?: number } = {}
+) {
   const result = await listProductsPg({
     categoryId,
-    page: 1,
-    pageSize: 10_000,
+    page: options.page ?? 1,
+    pageSize: options.pageSize ?? DEFAULT_LIST_LIMIT,
   });
   return result.items;
 }
@@ -448,7 +553,7 @@ export async function getRestockedProductsPg(limit = 8) {
   return result.items;
 }
 
-export async function searchProductsPg(q: string, limit = 100) {
+export async function searchProductsPg(q: string, limit = DEFAULT_LIST_LIMIT) {
   const result = await listProductsPg({
     search: q,
     limit,

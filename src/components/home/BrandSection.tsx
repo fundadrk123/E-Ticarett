@@ -1,7 +1,15 @@
 import Link from "next/link";
-import { brands } from "@/data/brands";
+import { getServerBrands } from "@/lib/server-data";
+import type { Brand } from "@/types";
 
-export function BrandSection() {
+interface BrandSectionProps {
+  /** Parent'tan verilirse ayrı fetch atlanır */
+  brands?: Brand[];
+}
+
+export async function BrandSection({ brands: brandsProp }: BrandSectionProps) {
+  const brands = brandsProp ?? (await getServerBrands());
+
   return (
     <section className="border-y border-slate-200 bg-white py-12">
       <div className="container-site">

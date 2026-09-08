@@ -1,3 +1,9 @@
+/**
+ * @deprecated Legacy JSON store facade. Not used by the App Router runtime.
+ * Use async helpers from `@/lib/server-data` (PostgreSQL) instead.
+ *
+ * Kept for backward compatibility with old scripts/docs references only.
+ */
 import {
   getAllCategories,
   getAllProducts,

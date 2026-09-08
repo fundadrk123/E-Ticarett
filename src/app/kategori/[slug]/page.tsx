@@ -7,7 +7,7 @@ import {
 import { ProductCard } from "@/components/products/ProductCard";
 import { Pagination } from "@/components/products/Pagination";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -28,15 +28,17 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const sp = (await searchParams) ?? {};
   const page = Math.max(1, Number(sp.sayfa) || 1);
-  const category = await getServerCategoryBySlug(slug);
+
+  const [category, list] = await Promise.all([
+    getServerCategoryBySlug(slug),
+    getServerProductList({
+      categorySlug: slug,
+      page,
+      pageSize: PAGE_SIZE,
+    }),
+  ]);
 
   if (!category) notFound();
-
-  const list = await getServerProductList({
-    categoryId: category.id,
-    page,
-    pageSize: PAGE_SIZE,
-  });
 
   const from = list.total === 0 ? 0 : (list.page - 1) * list.pageSize + 1;
   const to = Math.min(list.page * list.pageSize, list.total);

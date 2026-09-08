@@ -5,7 +5,7 @@ import { getServerProductBySlug, getServerCategoryById } from "@/lib/server-data
 import { formatPrice } from "@/lib/utils";
 import { ProductActions } from "@/components/products/ProductActions";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 interface Props {
   params: Promise<{ slug: string }>;

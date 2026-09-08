@@ -7,9 +7,10 @@ import {
   getServerProductList,
   getServerNewProducts,
   getServerRestockedProducts,
+  getServerBrands,
 } from "@/lib/server-data";
 
-export const revalidate = 60;
+export const revalidate = 30;
 
 function SectionSkeleton({ title }: { title: string }) {
   return (
@@ -31,10 +32,11 @@ function SectionSkeleton({ title }: { title: string }) {
 }
 
 async function HomeProductSections() {
-  const [featured, newProducts, restockedProducts] = await Promise.all([
+  const [featured, newProducts, restockedProducts, brands] = await Promise.all([
     getServerProductList({ page: 1, pageSize: 8, skipCount: true }),
     getServerNewProducts(4),
     getServerRestockedProducts(4),
+    getServerBrands(),
   ]);
 
   return (
@@ -47,7 +49,7 @@ async function HomeProductSections() {
         }
         viewAllHref="/urunler?filtre=yeni"
       />
-      <BrandSection />
+      <BrandSection brands={brands} />
       <div className="bg-slate-100">
         <ProductSection
           title="Öne Çıkan Ürünler"

@@ -109,6 +109,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const skipNextSync = useRef(false);
   const syncedUserId = useRef<string | null>(null);
+  /** Hydration sonrası localStorage'a aynı veriyi tekrar yazmayı atla */
+  const skipNextPersist = useRef(true);
+  /** Ürün doğrulaması yalnızca ilk hydration'da bir kez çalışsın */
+  const didValidateRef = useRef(false);
 
   useEffect(() => {
     setItems(readStoredCart());
@@ -117,10 +121,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Silinmiş / stoksuz ürünleri sepetten temizle (eski localStorage ID'leri)
   useEffect(() => {
-    if (!ready) return;
-    const current = readStoredCart();
-    if (current.length === 0) return;
+    if (!ready || didValidateRef.current) return;
+    didValidateRef.current = true;
+    if (items.length === 0) return;
 
+    const current = items;
     let cancelled = false;
     fetch("/api/products/validate", {
       method: "POST",
@@ -158,10 +163,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ready]);
+  }, [ready, items]);
 
   useEffect(() => {
     if (!ready) return;
+    if (skipNextPersist.current) {
+      skipNextPersist.current = false;
+      return;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, ready]);
 
